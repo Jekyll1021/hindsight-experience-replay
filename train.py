@@ -26,7 +26,7 @@ def launch(args):
     env = gym.make(args.env_name)
     # get the environment parameters
     env_params = get_env_params(env)
-    # create the ddpg agent to interact with the environment 
+    # create the ddpg agent to interact with the environment
     ddpg_trainer = ddpg_agent(args, env, env_params)
     ddpg_trainer.learn()
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # take the configuration for the HER
     os.environ['OMP_NUM_THREADS'] = '1'
     os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['IN_MPI'] = '1'
+    os.environ['IN_MPI'] = '0'
     # get the params
     args = get_args()
     launch(args)
