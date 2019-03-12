@@ -2,8 +2,8 @@ import numpy as np
 import gym
 import os, sys
 from arguments import get_args
-# from mpi4py import MPI
-# from subprocess import CalledProcessError
+from mpi4py import MPI
+from subprocess import CalledProcessError
 from ddpg_agent import ddpg_agent
 
 """
@@ -32,9 +32,9 @@ def launch(args):
 
 if __name__ == '__main__':
     # take the configuration for the HER
-    # os.environ['OMP_NUM_THREADS'] = '1'
-    # os.environ['MKL_NUM_THREADS'] = '1'
-    # os.environ['IN_MPI'] = '0'
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['IN_MPI'] = '1'
     # get the params
     args = get_args()
     launch(args)

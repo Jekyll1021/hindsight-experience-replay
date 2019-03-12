@@ -2,7 +2,7 @@ import torch
 import os
 from datetime import datetime
 import numpy as np
-# from mpi4py import MPI
+from mpi4py import MPI
 from models import actor, critic
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
@@ -47,13 +47,13 @@ class ddpg_agent:
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
         self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
         # create the dict for store the model
-        # if MPI.COMM_WORLD.Get_rank() == 0:
-        if not os.path.exists(self.args.save_dir):
-            os.mkdir(self.args.save_dir)
-        # path to save the model
-        self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
-        if not os.path.exists(self.model_path):
-            os.mkdir(self.model_path)
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            if not os.path.exists(self.args.save_dir):
+                os.mkdir(self.args.save_dir)
+            # path to save the model
+            self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
+            if not os.path.exists(self.model_path):
+                os.mkdir(self.model_path)
 
     def learn(self):
         """
@@ -112,10 +112,10 @@ class ddpg_agent:
                 self._soft_update_target_network(self.critic_target_network, self.critic_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
-            # if MPI.COMM_WORLD.Get_rank() == 0:
-            print('[{}] epoch is: {}, eval success rate is: {:.3f}'.format(datetime.now(), epoch, success_rate))
-            torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
-                        self.model_path + '/model.pt')
+            if MPI.COMM_WORLD.Get_rank() == 0:
+                print('[{}] epoch is: {}, eval success rate is: {:.3f}'.format(datetime.now(), epoch, success_rate))
+                torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
+                            self.model_path + '/model.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):
@@ -253,5 +253,5 @@ class ddpg_agent:
             total_success_rate.append(per_success_rate)
         total_success_rate = np.array(total_success_rate)
         local_success_rate = np.mean(total_success_rate[:, -1])
-        # global_success_rate = MPI.COMM_WORLD.allreduce(local_success_rate, op=MPI.SUM)
-        return local_success_rate / len(total_success_rate)
+        global_success_rate = MPI.COMM_WORLD.allreduce(local_success_rate, op=MPI.SUM)
+        return global_success_rate / MPI.COMM_WORLD.Get_size()
