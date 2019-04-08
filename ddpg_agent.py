@@ -18,9 +18,25 @@ class ddpg_agent:
         self.args = args
         self.env = env
         self.env_params = env_params
+
         # create the network
         self.actor_network = actor(env_params)
         self.critic_network = critic(env_params)
+
+        # create the normalizer
+        self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
+        self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
+
+        # load model if load_path is not None
+        if self.args.load_dir != '':
+            load_path = self.args.load_dir + '/model.pt'
+            o_mean, o_std, g_mean, g_std, model = torch.load(load_path)
+            self.o_norm.mean = o_mean
+            self.o_norm.std = o_std
+            self.g_norm.mean = g_mean
+            self.g_norm.std = g_std
+            self.actor_network.load_state_dict(model)
+
         # sync the networks across the cpus
         sync_networks(self.actor_network)
         sync_networks(self.critic_network)
@@ -30,6 +46,7 @@ class ddpg_agent:
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
         self.critic_target_network.load_state_dict(self.critic_network.state_dict())
+
         # if use gpu
         if self.args.cuda:
             self.actor_network.cuda()
@@ -43,10 +60,6 @@ class ddpg_agent:
         self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env.compute_reward)
         # create the replay buffer
         self.buffer = replay_buffer(self.env_params, self.args.buffer_size, self.her_module.sample_her_transitions)
-        # create the normalizer
-        self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
-        self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
-        # create the dict for store the model
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
