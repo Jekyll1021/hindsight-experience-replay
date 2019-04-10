@@ -6,7 +6,7 @@ from mpi4py import MPI
 from models import actor, critic
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
-# from normalizer import normalizer
+from normalizer import normalizer
 from her import her_sampler
 
 """
@@ -24,8 +24,8 @@ class ddpg_agent:
         self.critic_network = critic(env_params)
 
         # create the normalizer
-        # self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
-        # self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
+        self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
+        self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
 
         # load model if load_path is not None
         if self.args.load_dir != '':
@@ -112,7 +112,7 @@ class ddpg_agent:
                 mb_actions = np.array(mb_actions)
                 # store the episodes
                 self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
-                # self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
+                self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
                 for _ in range(self.args.n_batches):
                     # train the network
                     self._update_network()
@@ -123,17 +123,13 @@ class ddpg_agent:
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:
                 print('[{}] epoch is: {}, eval success rate is: {:.3f}'.format(datetime.now(), epoch, success_rate))
-                # torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
-                #             self.model_path + '/model.pt')
-                torch.save(self.actor_network.state_dict(), \
+                torch.save([self.o_norm.mean, self.o_norm.std, self.g_norm.mean, self.g_norm.std, self.actor_network.state_dict()], \
                             self.model_path + '/model.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):
-        # obs_norm = self.o_norm.normalize(obs)
-        # g_norm = self.g_norm.normalize(g)
-        obs_norm = obs
-        g_norm = g
+        obs_norm = self.o_norm.normalize(obs)
+        g_norm = self.g_norm.normalize(g)
         # concatenate the stuffs
         inputs = np.concatenate([obs_norm, g_norm])
         inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
@@ -199,15 +195,11 @@ class ddpg_agent:
         transitions['obs'], transitions['g'] = self._preproc_og(o, g)
         transitions['obs_next'], transitions['g_next'] = self._preproc_og(o_next, g)
         # start to do the update
-        # obs_norm = self.o_norm.normalize(transitions['obs'])
-        # g_norm = self.g_norm.normalize(transitions['g'])
-        obs_norm = transitions['obs']
-        g_norm = transitions['g']
+        obs_norm = self.o_norm.normalize(transitions['obs'])
+        g_norm = self.g_norm.normalize(transitions['g'])
         inputs_norm = np.concatenate([obs_norm, g_norm], axis=1)
-        # obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
-        # g_next_norm = self.g_norm.normalize(transitions['g_next'])
-        obs_next_norm = transitions['obs_next']
-        g_next_norm = transitions['g_next']
+        obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
+        g_next_norm = self.g_norm.normalize(transitions['g_next'])
         inputs_next_norm = np.concatenate([obs_next_norm, g_next_norm], axis=1)
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
