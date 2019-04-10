@@ -197,11 +197,15 @@ class ddpg_agent:
         transitions['obs'], transitions['g'] = self._preproc_og(o, g)
         transitions['obs_next'], transitions['g_next'] = self._preproc_og(o_next, g)
         # start to do the update
-        obs_norm = self.o_norm.normalize(transitions['obs'])
-        g_norm = self.g_norm.normalize(transitions['g'])
+        # obs_norm = self.o_norm.normalize(transitions['obs'])
+        # g_norm = self.g_norm.normalize(transitions['g'])
+        obs_norm = transitions['obs']
+        g_norm = transitions['g']
         inputs_norm = np.concatenate([obs_norm, g_norm], axis=1)
-        obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
-        g_next_norm = self.g_norm.normalize(transitions['g_next'])
+        # obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
+        # g_next_norm = self.g_norm.normalize(transitions['g_next'])
+        obs_next_norm = transitions['obs_next']
+        g_next_norm = transitions['g_next']
         inputs_next_norm = np.concatenate([obs_next_norm, g_next_norm], axis=1)
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
