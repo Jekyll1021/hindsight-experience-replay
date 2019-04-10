@@ -6,7 +6,7 @@ from mpi4py import MPI
 from models import actor, critic
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
-from normalizer import normalizer
+# from normalizer import normalizer
 from her import her_sampler
 
 """
@@ -24,8 +24,8 @@ class ddpg_agent:
         self.critic_network = critic(env_params)
 
         # create the normalizer
-        self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
-        self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
+        # self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
+        # self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
 
         # load model if load_path is not None
         if self.args.load_dir != '':
@@ -112,7 +112,7 @@ class ddpg_agent:
                 mb_actions = np.array(mb_actions)
                 # store the episodes
                 self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
-                self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
+                # self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
                 for _ in range(self.args.n_batches):
                     # train the network
                     self._update_network()
@@ -128,8 +128,10 @@ class ddpg_agent:
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, g):
-        obs_norm = self.o_norm.normalize(obs)
-        g_norm = self.g_norm.normalize(g)
+        # obs_norm = self.o_norm.normalize(obs)
+        # g_norm = self.g_norm.normalize(g)
+        obs_norm = obs
+        g_norm = g
         # concatenate the stuffs
         inputs = np.concatenate([obs_norm, g_norm])
         inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
