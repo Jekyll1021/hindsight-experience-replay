@@ -19,7 +19,7 @@ class replay_buffer:
                         'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
                         'g': np.empty([self.size, self.T, self.env_params['goal']]),
                         'actions': np.empty([self.size, self.T, self.env_params['action']]),
-                        'sg': np.empty([self.size, self.T, self.env_params['action']]),
+                        'sg': np.empty([self.size, self.T + 1, self.env_params['action']]),
                         }
         # thread lock
         self.lock = threading.Lock()
