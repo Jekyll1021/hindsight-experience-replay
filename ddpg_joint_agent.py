@@ -61,7 +61,7 @@ class ddpg_joint_agent:
         sync_networks(self.critic_network)
         # build up the target network
         self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-        self.critic_target_network = critic(env_params, env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
         self.critic_target_network.load_state_dict(self.critic_network.state_dict())
