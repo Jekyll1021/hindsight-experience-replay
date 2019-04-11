@@ -130,6 +130,7 @@ class ddpg_joint_agent:
                             expert_policy = expert_policy_new
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
+                        ep_sg.append(expert_policy.copy())
                         mb_obs.append(ep_obs)
                         mb_ag.append(ep_ag)
                         mb_g.append(ep_g)
