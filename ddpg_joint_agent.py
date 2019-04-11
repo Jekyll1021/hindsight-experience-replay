@@ -76,9 +76,9 @@ class ddpg_joint_agent:
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
         # her sampler
-        self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env.compute_reward)
+        self.her_module_lst = [her_sampler(self.args.replay_strategy, self.args.replay_k, env.compute_reward) for env in self.envs_lst]
         # create the replay buffer
-        self.buffer = replay_buffer(self.env_params, self.args.buffer_size, self.her_module.sample_her_transitions)
+        self.buffer_lst = [replay_buffer(self.env_params, self.args.buffer_size, her_module.sample_her_transitions) in self.her_module_lst]
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
@@ -90,7 +90,7 @@ class ddpg_joint_agent:
         """
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            for env, expert in zip(self.envs_lst, self.expert_lst):
+            for env, expert, her_module, buffer in zip(self.envs_lst, self.expert_lst, self.her_module_lst, self.buffer_lst):
                 for _ in range(self.args.n_cycles):
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions = [], [], [], [], []
                     for _ in range(self.args.num_rollouts_per_mpi):
@@ -142,11 +142,11 @@ class ddpg_joint_agent:
                     mb_sg = np.array(mb_sg)
                     mb_actions = np.array(mb_actions)
                     # store the episodes
-                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg])
-                    self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions, mb_sg])
+                    buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg])
+                    self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions, mb_sg], her_module)
                     for _ in range(self.args.n_batches):
                         # train the network
-                        self._update_network()
+                        self._update_network(buffer)
                     # soft update
                     self._soft_update_target_network(self.actor_target_network, self.actor_network)
                     self._soft_update_target_network(self.critic_target_network, self.critic_network)
@@ -183,7 +183,7 @@ class ddpg_joint_agent:
         return action
 
     # update the normalizer
-    def _update_normalizer(self, episode_batch):
+    def _update_normalizer(self, episode_batch, her_module):
         mb_obs, mb_ag, mb_g, mb_actions, mb_sg = episode_batch
         mb_obs_next = mb_obs[:, 1:, :]
         mb_ag_next = mb_ag[:, 1:, :]
@@ -200,7 +200,7 @@ class ddpg_joint_agent:
                        'sg': mb_sg,
                        'sg_next': mb_sg_next,
                        }
-        transitions = self.her_module.sample_her_transitions(buffer_temp, num_transitions)
+        transitions = her_module.sample_her_transitions(buffer_temp, num_transitions)
         obs, g, sg = transitions['obs'], transitions['g'], transitions['sg']
         # pre process the obs and g
         transitions['obs'], transitions['g'], transitions['sg'] = self._preproc_og(obs, g, sg)
@@ -225,9 +225,9 @@ class ddpg_joint_agent:
             target_param.data.copy_((1 - self.args.polyak) * param.data + self.args.polyak * target_param.data)
 
     # update the network
-    def _update_network(self):
+    def _update_network(self, buffer):
         # sample the episodes
-        transitions = self.buffer.sample(self.args.batch_size)
+        transitions = buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next, g, sg, sg_next = transitions['obs'], transitions['obs_next'], transitions['g'], transitions['sg'], transitions['sg_next']
         transitions['obs'], transitions['g'], transitions['sg'] = self._preproc_og(o, g, sg)
