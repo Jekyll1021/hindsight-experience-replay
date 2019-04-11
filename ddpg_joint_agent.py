@@ -107,7 +107,7 @@ class ddpg_joint_agent:
                         # start to collect samples
                         for _ in range(self.env_params['max_timesteps']):
                             with torch.no_grad():
-                                input_tensor = self._preproc_inputs(obs, g)
+                                input_tensor = self._preproc_inputs(obs, g, expert_policy)
                                 pi = self.actor_network(input_tensor)
                                 action = self._select_actions(pi)
                             # feed the actions into the environment
