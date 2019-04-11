@@ -9,10 +9,10 @@ the input x in both networks should be [o, g], where o is the observation and g 
 
 # define the actor network
 class actor(nn.Module):
-    def __init__(self, env_params):
+    def __init__(self, env_params, input_num):
         super(actor, self).__init__()
         self.max_action = env_params['action_max']
-        self.fc1 = nn.Linear(env_params['obs'] + env_params['goal'], 64)
+        self.fc1 = nn.Linear(input_num, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
         self.action_out = nn.Linear(64, env_params['action'])
@@ -26,10 +26,10 @@ class actor(nn.Module):
         return actions
 
 class critic(nn.Module):
-    def __init__(self, env_params):
+    def __init__(self, env_params, input_num):
         super(critic, self).__init__()
         self.max_action = env_params['action_max']
-        self.fc1 = nn.Linear(env_params['obs'] + env_params['goal'] + env_params['action'], 64)
+        self.fc1 = nn.Linear(input_num, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
         self.q_out = nn.Linear(64, 1)
