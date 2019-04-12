@@ -301,7 +301,8 @@ class ddpg_joint_agent:
         # the actor loss
         if self.recurrent:
             actions_real, _ = self.actor_network(inputs_norm_tensor, hidden_tensor)
-            actor_loss, _ = -self.critic_network(inputs_norm_tensor, actions_real, hidden_tensor).mean()
+            actor_loss, _ = self.critic_network(inputs_norm_tensor, actions_real, hidden_tensor)
+            actor_loss = -actor_loss.mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
             actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
