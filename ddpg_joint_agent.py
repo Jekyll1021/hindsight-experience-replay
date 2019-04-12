@@ -281,8 +281,8 @@ class ddpg_joint_agent:
             # do the normalization
             # concatenate the stuffs
             if self.recurrent:
-                actions_next = self.actor_target_network(inputs_next_norm_tensor, next_hidden_tensor)
-                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next, next_hidden_tensor)
+                actions_next, _ = self.actor_target_network(inputs_next_norm_tensor, next_hidden_tensor)
+                q_next_value, _ = self.critic_target_network(inputs_next_norm_tensor, actions_next, next_hidden_tensor)
             else:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor)
                 q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
@@ -294,14 +294,14 @@ class ddpg_joint_agent:
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
         # the q loss
         if self.recurrent:
-            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor, hidden_tensor)
+            real_q_value, _ = self.critic_network(inputs_norm_tensor, actions_tensor, hidden_tensor)
         else:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         # the actor loss
         if self.recurrent:
-            actions_real = self.actor_network(inputs_norm_tensor, hidden_tensor)
-            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real, hidden_tensor).mean()
+            actions_real, _ = self.actor_network(inputs_norm_tensor, hidden_tensor)
+            actor_loss, _ = -self.critic_network(inputs_norm_tensor, actions_real, hidden_tensor).mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
             actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
