@@ -221,7 +221,7 @@ class ddpg_joint_agent:
                        'sg': mb_sg,
                        'sg_next': mb_sg_next,
                        'hidden': mb_hidden,
-                       'hidden_next' = mb_hidden_next
+                       'hidden_next': mb_hidden_next
                        }
         transitions = her_module.sample_her_transitions(buffer_temp, num_transitions)
         obs, g, sg = transitions['obs'], transitions['g'], transitions['sg']
