@@ -269,6 +269,8 @@ class ddpg_joint_agent:
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
+        hidden_tensor = torch.tensor(transitions['hidden'], dtype=torch.float32)
+        next_hidden_tensor = torch.tensor(transitions['next_hidden'], dtype=torch.float32)
         if self.args.cuda:
             inputs_norm_tensor = inputs_norm_tensor.cuda()
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
@@ -278,8 +280,12 @@ class ddpg_joint_agent:
         with torch.no_grad():
             # do the normalization
             # concatenate the stuffs
-            actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
+            if self.recurrent:
+                actions_next = self.actor_target_network(inputs_next_norm_tensor, next_hidden_tensor)
+                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next, next_hidden_tensor)
+            else:
+                actions_next = self.actor_target_network(inputs_next_norm_tensor)
+                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
             target_q_value = target_q_value.detach()
@@ -287,11 +293,18 @@ class ddpg_joint_agent:
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
         # the q loss
-        real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
+        if self.recurrent:
+            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor, hidden_tensor)
+        else:
+            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         # the actor loss
-        actions_real = self.actor_network(inputs_norm_tensor)
-        actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+        if self.recurrent:
+            actions_real = self.actor_network(inputs_norm_tensor, hidden_tensor)
+            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real, hidden_tensor).mean()
+        else:
+            actions_real = self.actor_network(inputs_norm_tensor)
+            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         # start to update the network
         self.actor_optim.zero_grad()

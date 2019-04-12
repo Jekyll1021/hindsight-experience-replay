@@ -80,6 +80,7 @@ class critic_recurrent(nn.Module):
         super(critic_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
+        self.input_num = input_num
         self.gru = nn.GRU(input_num, self.hidden_size)
         self.fc1 = nn.Linear(self.hidden_size, 64)
         self.fc2 = nn.Linear(64, 64)
@@ -88,20 +89,13 @@ class critic_recurrent(nn.Module):
 
     def _forward_gru(self, x, hxs):
         # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
-        N = hxs.size(0)
-        T = int(x.size(0) / N)
-
-        # unflatten
-        x = x.view(T, N, x.size(1))
-
+        # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
+        x = x.view(1, -1, self.input_num)
+        hxs = hxs.view(1, -1, self.hidden_size)
         x, hxs = self.gru(
             x,
-            hxs.view(1, -1, 1)
+            hxs
         )
-
-        # flatten
-        x = x.view(T * N, -1)
-        hxs = hxs.squeeze(0)
 
         return x, hxs
 
