@@ -5,6 +5,7 @@ from arguments import get_args
 from mpi4py import MPI
 from subprocess import CalledProcessError
 from ddpg_joint_agent import ddpg_joint_agent
+from ddpg_joint_ee_agent import ddpg_joint_ee_agent
 
 """
 train the agent, the MPI part code is copy from openai baselines(https://github.com/openai/baselines/blob/master/baselines/her)
@@ -24,13 +25,13 @@ def get_env_params(env):
 def launch(args):
     env_name_lst = [
         'CamPush-v0',
-        'CamReach-v0',
-        'CamPickAndPlace-v0'
+        # 'CamReach-v0',
+        # 'CamPickAndPlace-v0'
     ]
     expert_model_path_lst = [
         '../hindsight-experience-replay/saved_models/CamPush-v0',
-        '../hindsight-experience-replay/saved_models/CamReach-v0',
-        '../hindsight-experience-replay/saved_models/CamPickAndPlace-v0'
+        # '../hindsight-experience-replay/saved_models/CamReach-v0',
+        # '../hindsight-experience-replay/saved_models/CamPickAndPlace-v0'
     ]
     # create the ddpg_agent
     env_lst = [gym.make(name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='random', act_noise=False, obs_noise=False) for name in env_name_lst]
