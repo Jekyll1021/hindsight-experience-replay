@@ -45,7 +45,7 @@ class critic(nn.Module):
 
 class actor_recurrent(nn.Module):
     def __init__(self, env_params, input_num):
-        super(actor, self).__init__()
+        super(actor_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
         self.gru = nn.GRU(input_num, self.hidden_size)
@@ -84,7 +84,7 @@ class actor_recurrent(nn.Module):
 
 class critic_recurrent(nn.Module):
     def __init__(self, env_params, input_num):
-        super(critic, self).__init__()
+        super(critic_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
         self.gru = nn.GRU(input_num, self.hidden_size)
