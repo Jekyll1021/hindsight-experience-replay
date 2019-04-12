@@ -220,7 +220,7 @@ class ddpg_joint_agent:
                        'ag_next': mb_ag_next,
                        'sg': mb_sg,
                        'sg_next': mb_sg_next,
-                       'hidden' = mb_hidden,
+                       'hidden': mb_hidden,
                        'hidden_next' = mb_hidden_next
                        }
         transitions = her_module.sample_her_transitions(buffer_temp, num_transitions)
