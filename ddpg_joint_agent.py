@@ -270,7 +270,7 @@ class ddpg_joint_agent:
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
         hidden_tensor = torch.tensor(transitions['hidden'], dtype=torch.float32)
-        next_hidden_tensor = torch.tensor(transitions['next_hidden'], dtype=torch.float32)
+        next_hidden_tensor = torch.tensor(transitions['hidden_next'], dtype=torch.float32)
         if self.args.cuda:
             inputs_norm_tensor = inputs_norm_tensor.cuda()
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
