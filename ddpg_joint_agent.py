@@ -39,10 +39,10 @@ class ddpg_joint_agent:
         # create the network
         if self.recurrent:
             self.actor_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-            self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+            # self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
             self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-            self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -67,10 +67,10 @@ class ddpg_joint_agent:
         # build up the target network
         if self.recurrent:
             self.actor_target_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-            self.critic_target_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+            # self.critic_target_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
             self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-            self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
         self.critic_target_network.load_state_dict(self.critic_network.state_dict())
@@ -282,30 +282,25 @@ class ddpg_joint_agent:
             # concatenate the stuffs
             if self.recurrent:
                 actions_next, _ = self.actor_target_network(inputs_next_norm_tensor, next_hidden_tensor)
-                q_next_value, _ = self.critic_target_network(inputs_next_norm_tensor, actions_next, next_hidden_tensor)
             else:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor)
-                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
+            q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
             target_q_value = target_q_value.detach()
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
+
         # the q loss
-        if self.recurrent:
-            real_q_value, _ = self.critic_network(inputs_norm_tensor, actions_tensor, hidden_tensor)
-        else:
-            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
+        real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         # the actor loss
         if self.recurrent:
             actions_real, _ = self.actor_network(inputs_norm_tensor, hidden_tensor)
-            actor_loss, _ = self.critic_network(inputs_norm_tensor, actions_real, hidden_tensor)
-            actor_loss = -actor_loss.mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
-            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+        actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         # start to update the network
         self.actor_optim.zero_grad()
