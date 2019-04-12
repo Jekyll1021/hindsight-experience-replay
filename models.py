@@ -56,20 +56,10 @@ class actor_recurrent(nn.Module):
 
     def _forward_gru(self, x, hxs):
         # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
-        N = hxs.size(0)
-        T = int(x.size(0) / N)
-
-        # unflatten
-        x = x.view(T, N, x.size(1))
-
         x, hxs = self.gru(
             x,
-            hxs.view(1, -1, 1)
+            hxs
         )
-
-        # flatten
-        x = x.view(T * N, -1)
-        hxs = hxs.squeeze(0)
 
         return x, hxs
 
