@@ -12,6 +12,7 @@ class actor(nn.Module):
     def __init__(self, env_params, input_num):
         super(actor, self).__init__()
         self.max_action = env_params['action_max']
+        self.hidden_size = 64
         self.fc1 = nn.Linear(input_num, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
@@ -29,6 +30,7 @@ class critic(nn.Module):
     def __init__(self, env_params, input_num):
         super(critic, self).__init__()
         self.max_action = env_params['action_max']
+        self.hidden_size = 64
         self.fc1 = nn.Linear(input_num, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
