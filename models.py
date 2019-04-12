@@ -64,7 +64,7 @@ class actor_recurrent(nn.Module):
             hxs
         )
 
-        return x, hxs
+        return x.squeeze(0), hxs.squeeze(0)
 
     def forward(self, x, hidden):
         x, hidden = self._forward_gru(x, hidden)
@@ -97,7 +97,7 @@ class critic_recurrent(nn.Module):
             hxs
         )
 
-        return x, hxs
+        return x.squeeze(0), hxs.squeeze(0)
 
     def forward(self, x, actions, hidden):
         x = torch.cat([x, actions / self.max_action], dim=1)
