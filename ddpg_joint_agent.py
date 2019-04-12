@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import numpy as np
 from mpi4py import MPI
-from models import actor, critic
+from models import actor, critic, actor_recurrent, critic_recurrent
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
@@ -21,10 +21,11 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 class ddpg_joint_agent:
-    def __init__(self, args, envs_lst, env_params, expert_lst_dir):
+    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=False):
         self.args = args
         self.envs_lst = envs_lst
         self.env_params = env_params
+        self.recurrent = recurrent
 
         # initialize expert
         self.expert_lst = []
@@ -36,8 +37,12 @@ class ddpg_joint_agent:
             self.expert_lst.append({"model": expert_model, "o_mean": o_mean, "o_std": o_std, "g_mean": g_mean, "g_std": g_std})
 
         # create the network
-        self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-        self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        if self.recurrent:
+            self.actor_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        else:
+            self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -60,8 +65,12 @@ class ddpg_joint_agent:
         sync_networks(self.actor_network)
         sync_networks(self.critic_network)
         # build up the target network
-        self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-        self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        if self.recurrent:
+            self.actor_target_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_target_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+        else:
+            self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
         self.critic_target_network.load_state_dict(self.critic_network.state_dict())
@@ -92,10 +101,10 @@ class ddpg_joint_agent:
         for epoch in range(self.args.n_epochs):
             for env, expert, her_module, buffer in zip(self.envs_lst, self.expert_lst, self.her_module_lst, self.buffer_lst):
                 for _ in range(self.args.n_cycles):
-                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions = [], [], [], [], []
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
                     for _ in range(self.args.num_rollouts_per_mpi):
                         # reset the rollouts
-                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions = [], [], [], [], []
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                         # reset the environment
                         observation = env.reset()
                         obs = observation['observation']
@@ -105,10 +114,14 @@ class ddpg_joint_agent:
                             input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                             expert_policy = expert["model"](input).cpu().numpy().squeeze()
                         # start to collect samples
+                        hidden = torch.zeros(self.actor_network.hidden_size, dtype=torch.float32)
                         for _ in range(self.env_params['max_timesteps']):
                             with torch.no_grad():
                                 input_tensor = self._preproc_inputs(obs, g, expert_policy)
-                                pi = self.actor_network(input_tensor)
+                                if self.recurrent:
+                                    pi, hidden_new = self.actor_network(input_tensor, hidden)
+                                else:
+                                    pi = self.actor_network(input_tensor)
                                 action = self._select_actions(pi)
                             # feed the actions into the environment
                             observation_new, _, _, info = env.step(action)
@@ -122,29 +135,35 @@ class ddpg_joint_agent:
                             ep_obs.append(obs.copy())
                             ep_ag.append(ag.copy())
                             ep_g.append(g.copy())
+                            ep_hidden.append(hidden.cpu().numpy().squeeze().copy())
                             ep_sg.append(expert_policy.copy())
                             ep_actions.append(action.copy())
                             # re-assign the observation
                             obs = obs_new
                             ag = ag_new
+                            if self.recurrent:
+                                hidden = hidden_new
                             expert_policy = expert_policy_new
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
                         ep_sg.append(expert_policy.copy())
+                        ep_hidden.append(hidden.cpu().numpy().squeeze().copy())
                         mb_obs.append(ep_obs)
                         mb_ag.append(ep_ag)
                         mb_g.append(ep_g)
                         mb_sg.append(ep_sg)
                         mb_actions.append(ep_actions)
+                        mb_hidden.append(ep_hidden)
                     # convert them into arrays
                     mb_obs = np.array(mb_obs)
                     mb_ag = np.array(mb_ag)
                     mb_g = np.array(mb_g)
                     mb_sg = np.array(mb_sg)
                     mb_actions = np.array(mb_actions)
+                    mb_hidden = np.array(mb_hidden)
                     # store the episodes
-                    buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg])
-                    self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions, mb_sg], her_module)
+                    buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
+                    self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden], her_module)
                     for _ in range(self.args.n_batches):
                         # train the network
                         self._update_network(buffer)
@@ -185,10 +204,11 @@ class ddpg_joint_agent:
 
     # update the normalizer
     def _update_normalizer(self, episode_batch, her_module):
-        mb_obs, mb_ag, mb_g, mb_actions, mb_sg = episode_batch
+        mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden = episode_batch
         mb_obs_next = mb_obs[:, 1:, :]
         mb_ag_next = mb_ag[:, 1:, :]
         mb_sg_next = mb_sg[:, 1:, :]
+        mb_hidden_next = mb_hidden[:, 1:, :]
         # get the number of normalization transitions
         num_transitions = mb_actions.shape[1]
         # create the new buffer to store them
@@ -200,6 +220,8 @@ class ddpg_joint_agent:
                        'ag_next': mb_ag_next,
                        'sg': mb_sg,
                        'sg_next': mb_sg_next,
+                       'hidden' = mb_hidden,
+                       'hidden_next' = mb_hidden_next
                        }
         transitions = her_module.sample_her_transitions(buffer_temp, num_transitions)
         obs, g, sg = transitions['obs'], transitions['g'], transitions['sg']
@@ -291,13 +313,17 @@ class ddpg_joint_agent:
                 observation = env.reset()
                 obs = observation['observation']
                 g = observation['desired_goal']
+                hidden = torch.zeros(self.actor_network.hidden_size, dtype=torch.float32)
                 with torch.no_grad():
                     input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                     sg = expert["model"](input).cpu().numpy().squeeze()
                 for _ in range(self.env_params['max_timesteps']):
                     with torch.no_grad():
                         input_tensor = self._preproc_inputs(obs, g, sg)
-                        pi = self.actor_network(input_tensor)
+                        if self.recurrent:
+                            pi, hidden = self.actor_network(input_tensor, hidden)
+                        else:
+                            pi = self.actor_network(input_tensor)
                         # convert the actions
                         actions = pi.detach().cpu().numpy().squeeze()
                     observation_new, _, _, info = env.step(actions)
