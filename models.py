@@ -48,6 +48,7 @@ class actor_recurrent(nn.Module):
         super(actor_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
+        self.input_num = input_num
         self.gru = nn.GRU(input_num, self.hidden_size)
         self.fc1 = nn.Linear(self.hidden_size, 64)
         self.fc2 = nn.Linear(64, 64)
@@ -56,7 +57,8 @@ class actor_recurrent(nn.Module):
 
     def _forward_gru(self, x, hxs):
         # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
-        print(x.shape, hxs.shape)
+        x = x.view(1, -1, self.input_num)
+        hxs = hxs.view(1, -1, self.hidden_size)
         x, hxs = self.gru(
             x,
             hxs

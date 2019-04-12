@@ -114,7 +114,7 @@ class ddpg_joint_agent:
                             input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                             expert_policy = expert["model"](input).cpu().numpy().squeeze()
                         # start to collect samples
-                        hidden = torch.zeros(64, dtype=torch.float32)
+                        hidden = torch.zeros((1, 64), dtype=torch.float32)
                         for _ in range(self.env_params['max_timesteps']):
                             with torch.no_grad():
                                 input_tensor = self._preproc_inputs(obs, g, expert_policy)
