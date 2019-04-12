@@ -21,7 +21,7 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 class ddpg_joint_agent:
-    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=False):
+    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True):
         self.args = args
         self.envs_lst = envs_lst
         self.env_params = env_params
@@ -114,7 +114,7 @@ class ddpg_joint_agent:
                             input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                             expert_policy = expert["model"](input).cpu().numpy().squeeze()
                         # start to collect samples
-                        hidden = torch.zeros(self.actor_network.hidden_size, dtype=torch.float32)
+                        hidden = torch.zeros(64, dtype=torch.float32)
                         for _ in range(self.env_params['max_timesteps']):
                             with torch.no_grad():
                                 input_tensor = self._preproc_inputs(obs, g, expert_policy)
