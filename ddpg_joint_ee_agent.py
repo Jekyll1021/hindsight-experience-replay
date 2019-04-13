@@ -125,7 +125,6 @@ class ddpg_joint_ee_agent:
                                 else:
                                     pi = self.actor_network(input_tensor)
                                 action = self._select_actions(pi)
-                                print(action, gripper_ctrl)
                                 command = np.concatenate([action, gripper_ctrl])
                             # feed the actions into the environment
                             observation_new, _, _, info = env.step(command)
@@ -204,7 +203,7 @@ class ddpg_joint_ee_agent:
         action = np.clip(action, -self.env_params['action_max'], self.env_params['action_max'])
         # random actions...
         random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
-                                            size=self.env_params['action'])
+                                            size=self.env_params['goal'])
         # choose if use the random actions
         action += np.random.binomial(1, self.args.random_eps, 1)[0] * (random_actions - action)
         return action
