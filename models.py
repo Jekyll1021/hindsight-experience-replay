@@ -44,7 +44,7 @@ class critic(nn.Module):
         return q_value
 
 class actor_recurrent(nn.Module):
-    def __init__(self, env_params, input_num):
+    def __init__(self, env_params, input_num, output_num=4):
         super(actor_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
