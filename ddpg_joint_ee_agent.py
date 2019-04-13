@@ -38,6 +38,7 @@ class ddpg_joint_ee_agent:
 
         # create the network
         if self.recurrent:
+            print(env_params['goal'])
             self.actor_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'], env_params['goal'])
             # self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
