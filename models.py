@@ -15,7 +15,7 @@ class actor(nn.Module):
         self.fc1 = nn.Linear(input_num, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
-        self.action_out = nn.Linear(64, env_params['action'])
+        self.action_out = nn.Linear(64, output_num)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -53,7 +53,7 @@ class actor_recurrent(nn.Module):
         self.fc1 = nn.Linear(self.hidden_size, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
-        self.action_out = nn.Linear(64, env_params['action'])
+        self.action_out = nn.Linear(64, output_num)
 
     def _forward_gru(self, x, hxs):
         # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
