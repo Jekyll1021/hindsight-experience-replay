@@ -6,7 +6,7 @@ the replay buffer here is basically from the openai baselines code
 
 """
 class replay_buffer:
-    def __init__(self, env_params, buffer_size, sample_func):
+    def __init__(self, env_params, buffer_size, sample_func, ee_reward=False):
         self.env_params = env_params
         self.T = env_params['max_timesteps']
         self.size = buffer_size // self.T
@@ -15,13 +15,22 @@ class replay_buffer:
         self.n_transitions_stored = 0
         self.sample_func = sample_func
         # create the buffer to store info
-        self.buffers = {'obs': np.empty([self.size, self.T + 1, self.env_params['obs']]),
-                        'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
-                        'g': np.empty([self.size, self.T, self.env_params['goal']]),
-                        'actions': np.empty([self.size, self.T, self.env_params['action']]),
-                        'sg': np.empty([self.size, self.T + 1, self.env_params['action']]),
-                        'hidden': np.empty([self.size, self.T + 1, 64])
-                        }
+        if ee_reward:
+            self.buffers = {'obs': np.empty([self.size, self.T + 1, self.env_params['obs']]),
+                            'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
+                            'g': np.empty([self.size, self.T, self.env_params['goal']]),
+                            'actions': np.empty([self.size, self.T, self.env_params['goal']]),
+                            'sg': np.empty([self.size, self.T + 1, self.env_params['action']]),
+                            'hidden': np.empty([self.size, self.T + 1, 64])
+                            }
+        else:
+            self.buffers = {'obs': np.empty([self.size, self.T + 1, self.env_params['obs']]),
+                            'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
+                            'g': np.empty([self.size, self.T, self.env_params['goal']]),
+                            'actions': np.empty([self.size, self.T, self.env_params['action']]),
+                            'sg': np.empty([self.size, self.T + 1, self.env_params['action']]),
+                            'hidden': np.empty([self.size, self.T + 1, 64])
+                            }
         # thread lock
         self.lock = threading.Lock()
 
