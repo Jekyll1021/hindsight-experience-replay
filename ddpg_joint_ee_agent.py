@@ -21,11 +21,12 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 class ddpg_joint_ee_agent:
-    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True):
+    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True, ee_reward=False):
         self.args = args
         self.envs_lst = envs_lst
         self.env_params = env_params
         self.recurrent = recurrent
+        self.ee_reward = ee_reward
 
         # initialize expert
         self.expert_lst = []
@@ -113,7 +114,10 @@ class ddpg_joint_ee_agent:
                         with torch.no_grad():
                             input = process_inputs(obs, g_expert, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                             expert_policy = expert["model"](input).cpu().numpy().squeeze()
-                        g = expert_policy[:3] * 0.05 + ag.copy()
+                        if self.ee_reward:
+                            g = expert_policy[:3] * 0.05 + ag.copy()
+                        else:
+                            g = observation['desired_goal']
                         gripper_ctrl = expert_policy[3:]
                         # start to collect samples
                         hidden = torch.zeros((1, 64), dtype=torch.float32)
@@ -134,7 +138,10 @@ class ddpg_joint_ee_agent:
                             with torch.no_grad():
                                 input_new = process_inputs(obs_new, g_expert, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                                 expert_policy_new = expert["model"](input_new).cpu().numpy().squeeze()
-                                g_new = expert_policy_new[:3] * 0.05 + ag_new.copy()
+                                if self.ee_reward:
+                                    g_new = expert_policy_new[:3] * 0.05 + ag_new.copy()
+                                else:
+                                    g_new = observation_new['desired_goal']
                                 gripper_ctrl = expert_policy_new[3:]
                             # append rollouts
                             ep_obs.append(obs.copy())
