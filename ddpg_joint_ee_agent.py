@@ -339,6 +339,7 @@ class ddpg_joint_ee_agent:
                 with torch.no_grad():
                     input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                     sg = expert["model"](input).cpu().numpy().squeeze()
+                    gripper_ctrls = sg[:, 3:]
                 for _ in range(self.env_params['max_timesteps']):
                     with torch.no_grad():
                         input_tensor = self._preproc_inputs(obs, g, sg)
@@ -348,12 +349,14 @@ class ddpg_joint_ee_agent:
                             pi = self.actor_network(input_tensor)
                         # convert the actions
                         actions = pi.detach().cpu().numpy().squeeze()
-                    observation_new, _, _, info = env.step(actions)
+                        commands = np.concatenate([actions, gripper_ctrls], axis=1)
+                    observation_new, _, _, info = env.step(commands)
                     obs = observation_new['observation']
                     g = observation_new['desired_goal']
                     with torch.no_grad():
                         input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                         sg = expert["model"](input).cpu().numpy().squeeze()
+                        gripper_ctrls = sg[:, 3:]
                     per_success_rate.append(info['is_success'])
                 total_success_rate.append(per_success_rate)
         total_success_rate = np.array(total_success_rate)
