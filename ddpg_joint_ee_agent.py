@@ -38,10 +38,10 @@ class ddpg_joint_ee_agent:
 
         # create the network
         if self.recurrent:
-            self.actor_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.actor_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'], env_params['goal'])
             # self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
-            self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'], env_params['goal'])
         self.critic_network = critic(env_params, env_params['obs'] + 2 * env_params['goal'] + env_params['action'])
 
         # create the normalizer
@@ -66,10 +66,10 @@ class ddpg_joint_ee_agent:
         sync_networks(self.critic_network)
         # build up the target network
         if self.recurrent:
-            self.actor_target_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.actor_target_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'], env_params['goal'])
             # self.critic_target_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
-            self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'], env_params['goal'])
         self.critic_target_network = critic(env_params, env_params['obs'] + 2 * env_params['goal'] + env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
@@ -114,6 +114,7 @@ class ddpg_joint_ee_agent:
                             input = process_inputs(obs, g_expert, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                             expert_policy = expert["model"](input).cpu().numpy().squeeze()
                         g = expert_policy[:3] * 0.05 + ag.copy()
+                        gripper_ctrl = expert_policy[3:]
                         # start to collect samples
                         hidden = torch.zeros((1, 64), dtype=torch.float32)
                         for _ in range(self.env_params['max_timesteps']):
@@ -124,8 +125,9 @@ class ddpg_joint_ee_agent:
                                 else:
                                     pi = self.actor_network(input_tensor)
                                 action = self._select_actions(pi)
+                                command = np.concatenate([action, gripper_ctrl])
                             # feed the actions into the environment
-                            observation_new, _, _, info = env.step(action)
+                            observation_new, _, _, info = env.step(command)
                             obs_new = observation_new['observation']
                             ag_new = observation_new['gripper_pose']
 
@@ -133,6 +135,7 @@ class ddpg_joint_ee_agent:
                                 input_new = process_inputs(obs_new, g_expert, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                                 expert_policy_new = expert["model"](input_new).cpu().numpy().squeeze()
                                 g_new = expert_policy_new[:3] * 0.05 + ag_new.copy()
+                                gripper_ctrl = expert_policy_new[3:]
                             # append rollouts
                             ep_obs.append(obs.copy())
                             ep_ag.append(ag.copy())

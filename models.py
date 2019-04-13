@@ -9,7 +9,7 @@ the input x in both networks should be [o, g], where o is the observation and g 
 
 # define the actor network
 class actor(nn.Module):
-    def __init__(self, env_params, input_num):
+    def __init__(self, env_params, input_num, output_num=4):
         super(actor, self).__init__()
         self.max_action = env_params['action_max']
         self.fc1 = nn.Linear(input_num, 64)
