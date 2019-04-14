@@ -93,7 +93,7 @@ class ddpg_agent:
                         observation_new, _, _, info = self.env.step(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
-                        print(action[:3]*0.05*0.5, observation["achieved_goal"], observation_new["achieved_goal"])
+                        print(action[:3]*0.05*0.5, observation_new["achieved_goal"] - observation["achieved_goal"], observation["achieved_goal"], observation_new["achieved_goal"])
                         # append rollouts
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
