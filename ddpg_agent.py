@@ -110,7 +110,9 @@ class ddpg_agent:
                     mb_obs.append(ep_obs)
                     mb_ag.append(ep_ag)
                     mb_g.append(ep_g)
+                    mb_sg.append(ep_sg)
                     mb_actions.append(ep_actions)
+                    mb_hidden.append(ep_hidden)
                 # convert them into arrays
                 mb_obs = np.array(mb_obs)
                 mb_ag = np.array(mb_ag)
