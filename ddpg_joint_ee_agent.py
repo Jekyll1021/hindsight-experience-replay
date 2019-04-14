@@ -88,7 +88,7 @@ class ddpg_joint_ee_agent:
         # her sampler
         self.her_module_lst = [her_sampler(self.args.replay_strategy, self.args.replay_k, env.compute_reward) for env in self.envs_lst]
         # create the replay buffer
-        self.buffer_lst = [replay_buffer(self.env_params, self.args.buffer_size, her_module.sample_her_transitions, ee_reward=True) for her_module in self.her_module_lst]
+        self.buffer_lst = [replay_buffer(self.env_params, self.args.buffer_size, her_module.sample_her_transitions, ee_reward=self.ee_reward) for her_module in self.her_module_lst]
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
