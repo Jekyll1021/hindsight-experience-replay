@@ -72,15 +72,17 @@ class ddpg_agent:
         # start to collect samples
         for epoch in range(self.args.n_epochs):
             for _ in range(self.args.n_cycles):
-                mb_obs, mb_ag, mb_g, mb_actions = [], [], [], []
+                mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
                     # reset the rollouts
-                    ep_obs, ep_ag, ep_g, ep_actions = [], [], [], []
+                    ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                     # reset the environment
                     observation = self.env.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
+                    sg = np.zeros(4)
+                    hidden = np.zeros(64)
                     # start to collect samples
                     for t in range(self.env_params['max_timesteps']):
                         with torch.no_grad():
@@ -95,12 +97,16 @@ class ddpg_agent:
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
                         ep_g.append(g.copy())
+                        ep_sg.append(sg.copy())
                         ep_actions.append(action.copy())
+                        ep_hidden.append(hidden.copy())
                         # re-assign the observation
                         obs = obs_new
                         ag = ag_new
                     ep_obs.append(obs.copy())
                     ep_ag.append(ag.copy())
+                    ep_sg.append(sg.copy())
+                    ep_hidden.append(hidden.copy())
                     mb_obs.append(ep_obs)
                     mb_ag.append(ep_ag)
                     mb_g.append(ep_g)
@@ -109,9 +115,11 @@ class ddpg_agent:
                 mb_obs = np.array(mb_obs)
                 mb_ag = np.array(mb_ag)
                 mb_g = np.array(mb_g)
+                mb_sg = np.array(mb_sg)
                 mb_actions = np.array(mb_actions)
+                mb_hidden = np.array(mb_hidden)
                 # store the episodes
-                self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions])
+                self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
                 for _ in range(self.args.n_batches):
                     # train the network
