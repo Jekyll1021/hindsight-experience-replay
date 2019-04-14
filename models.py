@@ -23,7 +23,7 @@ class actor(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         if self.ee_pose:
-            actions = torch.clamp(self.max_action * self.action_out(x), -self.max_action, self.max_action)
+            actions = self.max_action * self.action_out(x)
         else:
             actions = self.max_action * torch.tanh(self.action_out(x))
 
@@ -76,7 +76,7 @@ class actor_recurrent(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         if self.ee_pose:
-            actions = torch.clamp(self.max_action * self.action_out(x), -self.max_action, self.max_action)
+            actions = self.max_action * self.action_out(x)
         else:
             actions = self.max_action * torch.tanh(self.action_out(x))
 
