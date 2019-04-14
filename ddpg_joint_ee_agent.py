@@ -242,7 +242,10 @@ class ddpg_joint_ee_agent:
                        'hidden': mb_hidden,
                        'hidden_next': mb_hidden_next
                        }
-        transitions = her_module.sample_her_transitions(buffer_temp, num_transitions)
+        if self.ee_reward:
+            transitions = her_module.sample_her_transitions(buffer_temp, num_transitions, "precise")
+        else:
+            transitions = her_module.sample_her_transitions(buffer_temp, num_transitions)
         obs, g, sg = transitions['obs'], transitions['g'], transitions['sg']
         # pre process the obs and g
         transitions['obs'], transitions['g'], transitions['sg'] = self._preproc_og(obs, g, sg)
