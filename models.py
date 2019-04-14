@@ -9,19 +9,23 @@ the input x in both networks should be [o, g], where o is the observation and g 
 
 # define the actor network
 class actor(nn.Module):
-    def __init__(self, env_params, input_num, output_num=4):
+    def __init__(self, env_params, input_num, output_num=4, ee_pose=True):
         super(actor, self).__init__()
         self.max_action = env_params['action_max']
         self.fc1 = nn.Linear(input_num, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
         self.action_out = nn.Linear(64, output_num)
+        self.ee_pose = ee_pose
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        actions = self.max_action * torch.tanh(self.action_out(x))
+        if self.ee_pose:
+            actions = self.max_action * self.action_out(x)
+        else:
+            actions = self.max_action * torch.tanh(self.action_out(x))
 
         return actions
 
@@ -44,7 +48,7 @@ class critic(nn.Module):
         return q_value
 
 class actor_recurrent(nn.Module):
-    def __init__(self, env_params, input_num, output_num=4):
+    def __init__(self, env_params, input_num, output_num=4, ee_pose=True):
         super(actor_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
@@ -71,7 +75,10 @@ class actor_recurrent(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        actions = self.max_action * torch.tanh(self.action_out(x))
+        if self.ee_pose:
+            actions = self.max_action * self.action_out(x)
+        else:
+            actions = self.max_action * torch.tanh(self.action_out(x))
 
         return actions, hidden
 
