@@ -110,9 +110,9 @@ class ddpg_joint_ee_agent:
                         observation = env.reset()
                         obs = observation['observation']
                         if self.ee_reward:
-                            ag = observation['achieved_goal']
-                        else:
                             ag = observation['gripper_pose']
+                        else:
+                            ag = observation['achieved_goal']
                         g_expert = observation['desired_goal']
                         with torch.no_grad():
                             input = process_inputs(obs, g_expert, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
@@ -137,9 +137,9 @@ class ddpg_joint_ee_agent:
                             observation_new, _, _, info = env.step(command)
                             obs_new = observation_new['observation']
                             if self.ee_reward:
-                                ag_new = observation_new['achieved_goal']
-                            else:
                                 ag_new = observation_new['gripper_pose']
+                            else:
+                                ag_new = observation_new['achieved_goal']
 
                             with torch.no_grad():
                                 input_new = process_inputs(obs_new, g_expert, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
