@@ -14,6 +14,7 @@ class replay_buffer:
         self.current_size = 0
         self.n_transitions_stored = 0
         self.sample_func = sample_func
+        self.ee_reward = ee_reward
         # create the buffer to store info
         if ee_reward:
             self.buffers = {'obs': np.empty([self.size, self.T + 1, self.env_params['obs']]),
@@ -60,7 +61,10 @@ class replay_buffer:
         temp_buffers['sg_next'] = temp_buffers['sg'][:, 1:, :]
         temp_buffers['hidden_next'] = temp_buffers['hidden'][:, 1:, :]
         # sample transitions
-        transitions = self.sample_func(temp_buffers, batch_size)
+        if self.ee_reward:
+            transitions = self.sample_func(temp_buffers, batch_size, info="precise")
+        else:
+            transitions = self.sample_func(temp_buffers, batch_size)
         return transitions
 
     def _get_storage_idx(self, inc=None):
