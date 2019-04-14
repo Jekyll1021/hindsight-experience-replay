@@ -21,7 +21,7 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 class ddpg_joint_ee_agent:
-    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True, ee_reward=False):
+    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True, ee_reward=True):
         self.args = args
         self.envs_lst = envs_lst
         self.env_params = env_params
