@@ -16,7 +16,6 @@ class actor(nn.Module):
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
         self.action_out = nn.Linear(64, output_num)
-        self.ee_pose = ee_pose
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
