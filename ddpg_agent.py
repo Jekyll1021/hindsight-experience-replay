@@ -14,7 +14,7 @@ ddpg with HER (MPI-version)
 
 """
 class ddpg_agent:
-    def __init__(self, args, env, env_params):
+    def __init__(self, args, env, env_params, normalize=True):
         self.args = args
         self.env = env
         self.env_params = env_params
