@@ -38,7 +38,7 @@ def launch(args):
     # get the environment parameters
     env_params = get_env_params(env_lst[0])
     # create the ddpg agent to interact with the environment
-    ddpg_trainer = ddpg_joint_ee_agent(args, env_lst, env_params, expert_model_path_lst, , ee_reward=True)
+    ddpg_trainer = ddpg_joint_ee_agent(args, env_lst, env_params, expert_model_path_lst, ee_reward=True)
     ddpg_trainer.learn()
 
 if __name__ == '__main__':
