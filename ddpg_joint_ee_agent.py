@@ -343,12 +343,15 @@ class ddpg_joint_ee_agent:
                 per_success_rate = []
                 observation = env.reset()
                 obs = observation['observation']
-                g = observation['desired_goal']
                 hidden = torch.zeros(self.actor_network.hidden_size, dtype=torch.float32)
                 with torch.no_grad():
-                    input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
+                    input = process_inputs(obs, observation['desired_goal'], expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                     sg = expert["model"](input).cpu().numpy().squeeze()
                     gripper_ctrls = sg[3:]
+                if self.ee_reward:
+                    g = sg[:3] * 0.05 + observation['gripper_pose']
+                else:
+                    g = observation['desired_goal']
                 for _ in range(self.env_params['max_timesteps']):
                     with torch.no_grad():
                         input_tensor = self._preproc_inputs(obs, g, sg)
@@ -361,7 +364,10 @@ class ddpg_joint_ee_agent:
                         commands = np.concatenate([actions, gripper_ctrls])
                     observation_new, _, _, info = env.step(commands)
                     obs = observation_new['observation']
-                    g = observation_new['desired_goal']
+                    if self.ee_reward:
+                        g = sg[:3] * 0.05 + observation_new['gripper_pose']
+                    else:
+                        g = observation_new['desired_goal']
                     with torch.no_grad():
                         input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                         sg = expert["model"](input).cpu().numpy().squeeze()
