@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import numpy as np
 from mpi4py import MPI
-from models import actor, critic, actor_recurrent, critic_recurrent, actor_image_recurrent, critic_image_recurrent
+from models import actor, critic, actor_recurrent, critic_recurrent, actor_image_recurrent, critic_image
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
