@@ -21,7 +21,7 @@ class ddpg_agent:
         self.normalize = normalize
 
         # create the network
-        self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'])
+        self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'], ee_pose=(not normalize))
         self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
 
         # create the normalizer
@@ -30,14 +30,19 @@ class ddpg_agent:
             self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
 
         # load model if load_path is not None
-        # if self.args.load_dir != '':
-        #     load_path = self.args.load_dir + '/model.pt'
-        #     o_mean, o_std, g_mean, g_std, model = torch.load(load_path)
-        #     self.o_norm.mean = o_mean
-        #     self.o_norm.std = o_std
-        #     self.g_norm.mean = g_mean
-        #     self.g_norm.std = g_std
-        #     self.actor_network.load_state_dict(model)
+        if self.args.load_dir != '':
+            if self.normalize:
+                load_path = self.args.load_dir + '/model.pt'
+                o_mean, o_std, g_mean, g_std, model = torch.load(load_path)
+                self.o_norm.mean = o_mean
+                self.o_norm.std = o_std
+                self.g_norm.mean = g_mean
+                self.g_norm.std = g_std
+                self.actor_network.load_state_dict(model)
+            else:
+                load_path = self.args.load_dir + '/model.pt'
+                model = torch.load(load_path)
+                self.actor_network.load_state_dict(model)
 
         # sync the networks across the cpus
         sync_networks(self.actor_network)
