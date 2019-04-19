@@ -34,7 +34,7 @@ def launch(args):
         # '../hindsight-experience-replay/saved_models/CamPickAndPlace-v0'
     ]
     # create the ddpg_agent
-    env_lst = [gym.make(name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='random', act_noise=False, obs_noise=False, ee_pose=False) for name in env_name_lst]
+    env_lst = [gym.make(name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='random', act_noise=False, obs_noise=False) for name in env_name_lst]
     # get the environment parameters
     env_params = get_env_params(env_lst[0])
     # create the ddpg agent to interact with the environment
