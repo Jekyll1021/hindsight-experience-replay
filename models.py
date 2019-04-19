@@ -121,7 +121,7 @@ class critic_recurrent(nn.Module):
 
 class actor_image_recurrent(nn.Module):
     def __init__(self, env_params, input_num, output_num=4, ee_pose=False):
-        super(actor_recurrent, self).__init__()
+        super(actor_image_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
         self.input_num = input_num
@@ -174,7 +174,7 @@ class actor_image_recurrent(nn.Module):
 
 class critic_image(nn.Module):
     def __init__(self, env_params, input_num):
-        super(critic_recurrent, self).__init__()
+        super(critic_image, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
         self.input_num = input_num
@@ -185,7 +185,7 @@ class critic_image(nn.Module):
         self.image_fc2 = nn.Linear(4096, 4096)
         self.image_fc3 = nn.Linear(4096, 64)
 
-        self.fc1 = nn.Linear(self.hidden_size, 64)
+        self.fc1 = nn.Linear(self.input_num + 64, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
         self.q_out = nn.Linear(64, 1)
@@ -200,7 +200,6 @@ class critic_image(nn.Module):
         img = self.image_fc3(img)
 
         x = torch.cat([x, img, actions / self.max_action], dim=1)
-        x, hidden = self._forward_gru(x, hidden)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
