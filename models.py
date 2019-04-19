@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torchvision import models
+
 """
 the input x in both networks should be [o, g], where o is the observation and g is the goal.
 
@@ -123,7 +125,14 @@ class actor_image_recurrent(nn.Module):
         self.max_action = env_params['action_max']
         self.hidden_size = 64
         self.input_num = input_num
-        self.gru = nn.GRU(input_num, self.hidden_size)
+
+        self.feature_extraction_model = models.vgg16(pretrained=True)
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.image_fc1 = nn.Linear(512 * 7 * 7, 4096)
+        self.image_fc2 = nn.Linear(4096, 4096)
+        self.image_fc3 = nn.Linear(4096, 64)
+
+        self.gru = nn.GRU(input_num + 64, self.hidden_size)
         self.fc1 = nn.Linear(self.hidden_size, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
@@ -141,7 +150,17 @@ class actor_image_recurrent(nn.Module):
 
         return x.squeeze(0), hxs.squeeze(0)
 
-    def forward(self, x, hidden):
+    def forward(self, x, image, hidden):
+        image = image.permute((0, 3, 1, 2)).float()
+        img = self.feature_extraction_model.features(image)
+        img = self.avgpool(img)
+        img = img.view(img.size(0), -1)
+        img = F.relu(self.image_fc1(img))
+        img = F.relu(self.image_fc2(img))
+        img = self.image_fc3(img)
+
+        x = torch.cat([x, img], dim=1)
+
         x, hidden = self._forward_gru(x, hidden)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -153,32 +172,34 @@ class actor_image_recurrent(nn.Module):
 
         return actions, hidden
 
-class critic_image_recurrent(nn.Module):
+class critic_image(nn.Module):
     def __init__(self, env_params, input_num):
         super(critic_recurrent, self).__init__()
         self.max_action = env_params['action_max']
         self.hidden_size = 64
         self.input_num = input_num
-        self.gru = nn.GRU(input_num, self.hidden_size)
+
+        self.feature_extraction_model = models.vgg16(pretrained=True)
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.image_fc1 = nn.Linear(512 * 7 * 7, 4096)
+        self.image_fc2 = nn.Linear(4096, 4096)
+        self.image_fc3 = nn.Linear(4096, 64)
+
         self.fc1 = nn.Linear(self.hidden_size, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
         self.q_out = nn.Linear(64, 1)
 
-    def _forward_gru(self, x, hxs):
-        # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
-        # x is a (T, N, -1) tensor that has been flatten to (T * N, -1)
-        x = x.view(1, -1, self.input_num)
-        hxs = hxs.view(1, -1, self.hidden_size)
-        x, hxs = self.gru(
-            x,
-            hxs
-        )
+    def forward(self, x, image, actions):
+        image = image.permute((0, 3, 1, 2)).float()
+        img = self.feature_extraction_model.features(image)
+        img = self.avgpool(img)
+        img = img.view(img.size(0), -1)
+        img = F.relu(self.image_fc1(img))
+        img = F.relu(self.image_fc2(img))
+        img = self.image_fc3(img)
 
-        return x.squeeze(0), hxs.squeeze(0)
-
-    def forward(self, x, actions, hidden):
-        x = torch.cat([x, actions / self.max_action], dim=1)
+        x = torch.cat([x, img, actions / self.max_action], dim=1)
         x, hidden = self._forward_gru(x, hidden)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))

@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import numpy as np
 from mpi4py import MPI
-from models import actor, critic, actor_recurrent, critic_recurrent
+from models import actor, critic, actor_recurrent, critic_recurrent, actor_image_recurrent, critic_image_recurrent
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
@@ -21,11 +21,12 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 class ddpg_joint_agent:
-    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True):
+    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True, image=True):
         self.args = args
         self.envs_lst = envs_lst
         self.env_params = env_params
         self.recurrent = recurrent
+        self.image = image
 
         # initialize expert
         self.expert_lst = []
@@ -37,12 +38,16 @@ class ddpg_joint_agent:
             self.expert_lst.append({"model": expert_model, "o_mean": o_mean, "o_std": o_std, "g_mean": g_mean, "g_std": g_std})
 
         # create the network
-        if self.recurrent:
+        if self.recurrent and self.image:
+            self.actor_network = actor_image_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_network = critic_image(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+        elif self.recurrent:
             self.actor_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
             # self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
             self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-        self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+            self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -65,12 +70,16 @@ class ddpg_joint_agent:
         sync_networks(self.actor_network)
         sync_networks(self.critic_network)
         # build up the target network
-        if self.recurrent:
+        if self.recurrent and self.image:
+            self.actor_target_network = actor_image_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+            self.critic_target_network = critic_image(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+        elif self.recurrent:
             self.actor_target_network = actor_recurrent(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-            # self.critic_target_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+            self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+            # self.critic_network = critic_recurrent(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         else:
             self.actor_target_network = actor(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
-        self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
+            self.critic_target_network = critic(env_params, env_params['obs'] + env_params['goal'] + 2 * env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
         self.critic_target_network.load_state_dict(self.critic_network.state_dict())
@@ -87,7 +96,7 @@ class ddpg_joint_agent:
         # her sampler
         self.her_module_lst = [her_sampler(self.args.replay_strategy, self.args.replay_k, env.compute_reward) for env in self.envs_lst]
         # create the replay buffer
-        self.buffer_lst = [replay_buffer(self.env_params, self.args.buffer_size, her_module.sample_her_transitions) for her_module in self.her_module_lst]
+        self.buffer_lst = [replay_buffer(self.env_params, self.args.buffer_size, her_module.sample_her_transitions, image=self.image) for her_module in self.her_module_lst]
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
@@ -101,15 +110,16 @@ class ddpg_joint_agent:
         for epoch in range(self.args.n_epochs):
             for env, expert, her_module, buffer in zip(self.envs_lst, self.expert_lst, self.her_module_lst, self.buffer_lst):
                 for _ in range(self.args.n_cycles):
-                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
                     for _ in range(self.args.num_rollouts_per_mpi):
                         # reset the rollouts
-                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image = [], [], [], [], [], [], []
                         # reset the environment
                         observation = env.reset()
                         obs = observation['observation']
                         ag = observation['achieved_goal']
                         g = observation['desired_goal']
+                        img = observation['image']
                         with torch.no_grad():
                             input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                             expert_policy = expert["model"](input).cpu().numpy().squeeze()
@@ -118,7 +128,11 @@ class ddpg_joint_agent:
                         for _ in range(self.env_params['max_timesteps']):
                             with torch.no_grad():
                                 input_tensor = self._preproc_inputs(obs, g, expert_policy)
-                                if self.recurrent:
+                                if self.image:
+                                    image = torch.tensor(img, dtype=torch.float32)
+                                if self.image and self.recurrent:
+                                    pi, hidden_new = self.actor_network(input_tensor, image, hidden)
+                                elif self.recurrent:
                                     pi, hidden_new = self.actor_network(input_tensor, hidden)
                                 else:
                                     pi = self.actor_network(input_tensor)
@@ -127,6 +141,7 @@ class ddpg_joint_agent:
                             observation_new, _, _, info = env.step(action)
                             obs_new = observation_new['observation']
                             ag_new = observation_new['achieved_goal']
+                            img_new = observation_new['image']
 
                             with torch.no_grad():
                                 input_new = process_inputs(obs_new, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
@@ -138,9 +153,11 @@ class ddpg_joint_agent:
                             ep_hidden.append(hidden.cpu().numpy().squeeze().copy())
                             ep_sg.append(expert_policy.copy())
                             ep_actions.append(action.copy())
+                            ep_image.append(img.copy())
                             # re-assign the observation
                             obs = obs_new
                             ag = ag_new
+                            img = img_new
                             if self.recurrent:
                                 hidden = hidden_new
                             expert_policy = expert_policy_new
@@ -148,12 +165,14 @@ class ddpg_joint_agent:
                         ep_ag.append(ag.copy())
                         ep_sg.append(expert_policy.copy())
                         ep_hidden.append(hidden.cpu().numpy().squeeze().copy())
+                        ep_image.append(img.copy())
                         mb_obs.append(ep_obs)
                         mb_ag.append(ep_ag)
                         mb_g.append(ep_g)
                         mb_sg.append(ep_sg)
                         mb_actions.append(ep_actions)
                         mb_hidden.append(ep_hidden)
+                        mb_image.append(ep_image)
                     # convert them into arrays
                     mb_obs = np.array(mb_obs)
                     mb_ag = np.array(mb_ag)
@@ -162,7 +181,10 @@ class ddpg_joint_agent:
                     mb_actions = np.array(mb_actions)
                     mb_hidden = np.array(mb_hidden)
                     # store the episodes
-                    buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
+                    if self.image:
+                        buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
+                    else:
+                        buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
                     self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden], her_module)
                     for _ in range(self.args.n_batches):
                         # train the network
@@ -271,20 +293,32 @@ class ddpg_joint_agent:
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
         hidden_tensor = torch.tensor(transitions['hidden'], dtype=torch.float32)
         next_hidden_tensor = torch.tensor(transitions['hidden_next'], dtype=torch.float32)
+        if self.image:
+            image_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
+            image_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
         if self.args.cuda:
             inputs_norm_tensor = inputs_norm_tensor.cuda()
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
             actions_tensor = actions_tensor.cuda()
             r_tensor = r_tensor.cuda()
+            if self.image:
+                image_tensor.cuda()
+                image_next_tensor.cuda()
         # calculate the target Q value function
         with torch.no_grad():
             # do the normalization
             # concatenate the stuffs
-            if self.recurrent:
+            if self.image and self.recurrent:
+                actions_next, _ = self.actor_target_network(inputs_next_norm_tensor, image_next_tensor, next_hidden_tensor)
+            elif self.recurrent:
                 actions_next, _ = self.actor_target_network(inputs_next_norm_tensor, next_hidden_tensor)
             else:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
+
+            if self.image:
+                q_next_value = self.critic_target_network(inputs_next_norm_tensor, image_next_tensor, actions_next)
+            else:
+                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
             target_q_value = target_q_value.detach()
@@ -293,14 +327,23 @@ class ddpg_joint_agent:
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
 
         # the q loss
-        real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
+        if self.image:
+            real_q_value = self.critic_network(inputs_norm_tensor, image_tensor, actions_tensor)
+        else:
+            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         # the actor loss
-        if self.recurrent:
+        if self.image and self.recurrent:
+            actions_real, _ = self.actor_network(inputs_norm_tensor, image_tensor, hidden_tensor)
+        elif self.recurrent:
             actions_real, _ = self.actor_network(inputs_norm_tensor, hidden_tensor)
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
-        actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+
+        if self.image:
+            actor_loss = -self.critic_network(inputs_norm_tensor, image_tensor, actions_real).mean()
+        else:
+            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         # start to update the network
         self.actor_optim.zero_grad()
@@ -322,6 +365,7 @@ class ddpg_joint_agent:
                 observation = env.reset()
                 obs = observation['observation']
                 g = observation['desired_goal']
+                image = observation['image']
                 hidden = torch.zeros(self.actor_network.hidden_size, dtype=torch.float32)
                 with torch.no_grad():
                     input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
@@ -329,7 +373,10 @@ class ddpg_joint_agent:
                 for _ in range(self.env_params['max_timesteps']):
                     with torch.no_grad():
                         input_tensor = self._preproc_inputs(obs, g, sg)
-                        if self.recurrent:
+                        if self.recurrent and self.image:
+                            image_tensor = torch.tensor(image, dtype=torch.float32)
+                            pi, hidden = self.actor_network(input_tensor, image_tensor, hidden)
+                        elif self.recurrent:
                             pi, hidden = self.actor_network(input_tensor, hidden)
                         else:
                             pi = self.actor_network(input_tensor)
@@ -338,6 +385,7 @@ class ddpg_joint_agent:
                     observation_new, _, _, info = env.step(actions)
                     obs = observation_new['observation']
                     g = observation_new['desired_goal']
+                    image = observation_new['image']
                     with torch.no_grad():
                         input = process_inputs(obs, g, expert['o_mean'], expert['o_std'], expert['g_mean'], expert['g_std'], self.args)
                         sg = expert["model"](input).cpu().numpy().squeeze()
