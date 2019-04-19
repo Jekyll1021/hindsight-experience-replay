@@ -21,12 +21,13 @@ def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
     return inputs
 
 class ddpg_joint_ee_agent:
-    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True, ee_reward=True):
+    def __init__(self, args, envs_lst, env_params, expert_lst_dir, recurrent=True, ee_reward=True, image=True):
         self.args = args
         self.envs_lst = envs_lst
         self.env_params = env_params
         self.recurrent = recurrent
         self.ee_reward = ee_reward
+        self.image = image
 
         # initialize expert
         self.expert_lst = []
