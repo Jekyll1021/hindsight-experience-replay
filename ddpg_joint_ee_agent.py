@@ -54,13 +54,14 @@ class ddpg_joint_ee_agent:
         # load model if load_path is not None
         if self.args.load_dir != '':
             load_path = self.args.load_dir + '/model.pt'
-            o_mean, o_std, g_mean, g_std, sg_mean, sg_std, model = torch.load(load_path)
+            # o_mean, o_std, g_mean, g_std, sg_mean, sg_std, model = torch.load(load_path)
+            o_mean, o_std, g_mean, g_std, model = torch.load(load_path)
             self.o_norm.mean = o_mean
             self.o_norm.std = o_std
             self.g_norm.mean = g_mean
             self.g_norm.std = g_std
-            self.sg_norm.mean = sg_mean
-            self.sg_norm.std = sg_std
+            # self.sg_norm.mean = sg_mean
+            # self.sg_norm.std = sg_std
             self.actor_network.load_state_dict(model)
 
         # sync the networks across the cpus
