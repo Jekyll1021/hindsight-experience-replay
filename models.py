@@ -209,7 +209,7 @@ class critic_image(nn.Module):
 
 class open_loop_image_predictor(nn.Module):
     def __init__(self, input_num, output_num=1, hidden=512):
-        super(actor_image_recurrent, self).__init__()
+        super(open_loop_image_predictor, self).__init__()
         self.input_num = input_num
 
         self.feature_extraction_model = models.alexnet(pretrained=True)
