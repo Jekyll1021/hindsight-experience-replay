@@ -1,12 +1,13 @@
 import threading
 import numpy as np
+import torch
 
 """
 the replay buffer here is basically from the openai baselines code
 
 """
 class open_loop_buffer:
-    def __init__(self, env_params, buffer_size, sample_size):
+    def __init__(self, env_params, buffer_size, sample_size, cuda=True):
         self.env_params = env_params
         self.size = buffer_size
         self.sample_size = sample_size
@@ -15,13 +16,18 @@ class open_loop_buffer:
         self.n_transitions_stored = 0
         # create the buffer to store info
 
-        self.buffers = {'obs': np.empty([self.size, self.sample_size, self.env_params['obs']]),
-                        'actions': np.empty([self.size, self.sample_size, self.env_params['goal']]),
-                        'success': np.empty([self.size, self.sample_size, 1]),
-                        'images': np.empty([self.size, self.sample_size, 128, 128, 3])
+        self.buffers = {'obs': torch.zeros([self.size, self.sample_size, self.env_params['obs']]),
+                        'actions': torch.zeros([self.size, self.sample_size, self.env_params['goal']]),
+                        'success': torch.zeros([self.size, self.sample_size, 1]),
+                        'images': torch.zeros([self.size, self.sample_size, 128, 128, 3])
                         }
         # thread lock
         self.lock = threading.Lock()
+
+        if cuda:
+            for key in self.buffers.keys():
+                self.buffers[key] = self.buffers[key].cuda()
+
 
     # store the episode
     def store_episode(self, episode_batch):
@@ -34,7 +40,7 @@ class open_loop_buffer:
             self.buffers['actions'][idxs] = mb_actions
             self.buffers['image'][idxs] = mb_image
             self.buffers['success'][idxs] = mb_success
-            self.n_transitions_stored += self.T * sample_size
+            self.n_transitions_stored += self.sample_size * sample_size
 
     # sample the data from the replay buffer
     def sample(self, batch_size):

@@ -47,7 +47,7 @@ class open_loop_agent:
         self.optim = torch.optim.Adam(self.score_predictor.parameters(), lr=self.args.lr_actor)
 
         # create the replay buffer
-        self.buffer = open_loop_buffer(self.env_params, self.args.buffer_size, self.sample_size)
+        self.buffer = open_loop_buffer(self.env_params, self.args.buffer_size, self.sample_size, self.args.cuda)
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
