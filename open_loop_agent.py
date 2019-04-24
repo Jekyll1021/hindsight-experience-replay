@@ -192,7 +192,7 @@ class open_loop_agent:
             # start to collect samples
             sample_mean = observation['achieved_goal']
             sample_mean[2] += 0.2
-            sample_cov = np.eye(self.env_params['action']) * 0.2
+            sample_cov = np.eye(self.env_params['action']) * 0.03
             action = np.random.multivariate_normal(sample_mean, sample_cov, 1000)
             obs = np.repeat(obs, 1000, axis=0)
             image_tensor = torch.tensor(np.repeat(image, 1000, axis=0), dtype=torch.float32)
