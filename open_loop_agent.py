@@ -180,7 +180,7 @@ class open_loop_agent:
             obs = np.repeat(obs, 1000, axis=0)
             image_tensor = torch.tensor(np.repeat(image, 1000, axis=0), dtype=torch.float32)
             if self.args.cuda:
-                image_tensor = image.cuda()
+                image_tensor = image_tensor.cuda()
             with torch.no_grad():
                 input_tensor = self._preproc_inputs(obs, action)
                 score = self.score_predictor(input_tensor, image_tensor)
