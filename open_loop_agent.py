@@ -170,16 +170,16 @@ class open_loop_agent:
         total_success_rate = []
         for _ in range(self.args.n_test_rollouts):
             observation = self.env.reset()
-            obs = observation['observation']
-            image = observation['image']
+            obs = np.array([observation['observation']])
+            image = np.array([observation['image']])
             # start to collect samples
             sample_mean = observation['achieved_goal']
             sample_mean[2] += 0.2
             sample_cov = np.eye(self.env_params['action']) * 0.2
             action = np.random.multivariate_normal(sample_mean, sample_cov, 1000)
-            obs = np.repeat(obs, 1000, axis=1)
-            print(obs.shape, action.shape)
+            obs = np.repeat(obs, 1000, axis=0)
             image_tensor = torch.tensor(np.repeat(image, 1000, axis=0), dtype=torch.float32)
+            print(obs.shape, action.shape, image_tensor.shape)
             if self.args.cuda:
                 image_tensor = image_tensor.cuda()
             with torch.no_grad():
