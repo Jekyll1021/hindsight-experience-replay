@@ -60,7 +60,9 @@ class open_loop_agent:
         # start to collect samples
         for epoch in range(self.args.n_epochs):
             mb_obs, mb_actions, mb_success, mb_image = [], [], [], []
-            for _ in range(self.sample_size):
+            count = 0
+            failure = int(self.sample_size * 2 / 3)
+            while count < self.sample_size:
                 # reset the rollouts
                 ep_obs, ep_actions, ep_success, ep_image = [], [], [], []
                 # reset the environment
@@ -74,14 +76,16 @@ class open_loop_agent:
                 action = np.random.multivariate_normal(sample_mean, sample_cov)
                 _, _, _, info = self.env.step(action)
 
-                ep_obs.append(obs.copy())
-                ep_actions.append(action.copy())
-                ep_success.append([info['is_success']])
-                ep_image.append(image.copy())
-                mb_obs.append(ep_obs)
-                mb_actions.append(ep_actions)
-                mb_success.append(ep_success)
-                mb_image.append(ep_image)
+                if info['is_success'] or failure > 0:
+                    ep_obs.append(obs.copy())
+                    ep_actions.append(action.copy())
+                    ep_success.append([info['is_success']])
+                    ep_image.append(image.copy())
+                    mb_obs.append(ep_obs)
+                    mb_actions.append(ep_actions)
+                    mb_success.append(ep_success)
+                    mb_image.append(ep_image)
+                    failure -= (1 - info['is_success'])
 
             # convert them into arrays
             mb_obs = np.array(mb_obs)
