@@ -86,6 +86,7 @@ class open_loop_agent:
                     mb_success.append(ep_success)
                     mb_image.append(ep_image)
                     failure -= (1 - info['is_success'])
+                    count += 1
 
             # convert them into arrays
             mb_obs = np.array(mb_obs)
