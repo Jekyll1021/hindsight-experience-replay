@@ -181,9 +181,10 @@ class open_loop_agent:
             image_tensor = torch.tensor(np.repeat(image, 1000, axis=0), dtype=torch.float32)
             if self.args.cuda:
                 image_tensor = image.cuda()
-            input_tensor = self._preproc_inputs(obs, action)
-            score = self.score_predictor(input_tensor, image_tensor)
-            ind = torch.argmax(score).item()
+            with torch.no_grad():
+                input_tensor = self._preproc_inputs(obs, action)
+                score = self.score_predictor(input_tensor, image_tensor)
+                ind = torch.argmax(score).item()
 
             _, _, _, info = self.env.step(action[ind])
             total_success_rate.append(info['is_success'])
