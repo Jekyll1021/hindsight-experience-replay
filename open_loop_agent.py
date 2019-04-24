@@ -120,7 +120,7 @@ class open_loop_agent:
         a_norm = self.a_norm.normalize(action.copy())
         # concatenate the stuffs
         inputs = np.concatenate([obs_norm, a_norm], axis=1)
-        inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
+        inputs = torch.tensor(inputs, dtype=torch.float32)
         if self.args.cuda:
             inputs = inputs.cuda()
         return inputs
