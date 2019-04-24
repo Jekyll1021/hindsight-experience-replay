@@ -155,9 +155,7 @@ class open_loop_agent:
             r_tensor = r_tensor.cuda()
 
         score = self.score_predictor(inputs_norm_tensor, image_tensor)
-        print(score.requires_grad)
         loss = torch.nn.functional.binary_cross_entropy(score, r_tensor)
-        print(loss.requires_grad)
         # start to update the network
         self.optim.zero_grad()
         loss.backward()
