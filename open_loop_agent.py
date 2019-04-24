@@ -59,44 +59,43 @@ class open_loop_agent:
         """
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            for _ in range(self.args.batch_size):
-                mb_obs, mb_actions, mb_success, mb_image = [], [], [], []
-                for _ in range(self.sample_size):
-                    # reset the rollouts
-                    ep_obs, ep_actions, ep_success, ep_image = [], [], [], []
-                    # reset the environment
-                    observation = self.env.reset()
-                    obs = observation['observation']
-                    image = observation['image']
-                    # start to collect samples
-                    sample_mean = observation['achieved_goal']
-                    sample_mean[2] += 0.2
-                    sample_cov = np.eye(self.env_params['action']) * 0.2
-                    action = np.random.multivariate_normal(sample_mean, sample_cov)
-                    _, _, _, info = self.env.step(action)
+            mb_obs, mb_actions, mb_success, mb_image = [], [], [], []
+            for _ in range(self.sample_size):
+                # reset the rollouts
+                ep_obs, ep_actions, ep_success, ep_image = [], [], [], []
+                # reset the environment
+                observation = self.env.reset()
+                obs = observation['observation']
+                image = observation['image']
+                # start to collect samples
+                sample_mean = observation['achieved_goal']
+                sample_mean[2] += 0.2
+                sample_cov = np.eye(self.env_params['action']) * 0.2
+                action = np.random.multivariate_normal(sample_mean, sample_cov)
+                _, _, _, info = self.env.step(action)
 
-                    ep_obs.append(obs.copy())
-                    ep_actions.append(action.copy())
-                    ep_success.append([info['is_success']])
-                    ep_image.append(image.copy())
-                    mb_obs.append(ep_obs)
-                    mb_actions.append(ep_actions)
-                    mb_success.append(ep_success)
-                    mb_image.append(ep_image)
+                ep_obs.append(obs.copy())
+                ep_actions.append(action.copy())
+                ep_success.append([info['is_success']])
+                ep_image.append(image.copy())
+                mb_obs.append(ep_obs)
+                mb_actions.append(ep_actions)
+                mb_success.append(ep_success)
+                mb_image.append(ep_image)
 
-                # convert them into arrays
-                mb_obs = np.array(mb_obs)
-                mb_actions = np.array(mb_actions)
-                mb_success = np.array(mb_success)
-                mb_image = np.array(mb_image)
+            # convert them into arrays
+            mb_obs = np.array(mb_obs)
+            mb_actions = np.array(mb_actions)
+            mb_success = np.array(mb_success)
+            mb_image = np.array(mb_image)
 
-                # store the episodes
-                self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
-                print(np.sum(mb_success)/mb_success.size)
-                self._update_normalizer([mb_obs, mb_actions])
-                for _ in range(self.args.n_batches):
-                    # train the network
-                    loss = self._update_network()
+            # store the episodes
+            self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
+            print(np.sum(mb_success)/mb_success.size)
+            self._update_normalizer([mb_obs, mb_actions])
+            for _ in range(self.args.n_batches):
+                # train the network
+                loss = self._update_network()
             # start to do the evaluation
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:

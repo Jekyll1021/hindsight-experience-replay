@@ -213,7 +213,6 @@ class open_loop_image_predictor(nn.Module):
         self.input_num = input_num
 
         self.feature_extraction_model = models.alexnet(pretrained=True)
-        self.feature_extraction_model.eval()
 
         self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
@@ -228,10 +227,9 @@ class open_loop_image_predictor(nn.Module):
 
     def forward(self, input, image):
         image = image.permute((0, 3, 1, 2)).float()
-        with torch.no_grad():
-            img = self.feature_extraction_model.features(image)
-            img = self.avgpool(img)
-            img = img.view(img.size(0), -1)
+        img = self.feature_extraction_model.features(image)
+        img = self.avgpool(img)
+        img = img.view(img.size(0), -1)
         img = F.relu(self.image_fc1(img))
         img = F.relu(self.image_fc2(img))
         img = self.image_fc3(img)
