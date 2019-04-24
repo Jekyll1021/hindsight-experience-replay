@@ -77,7 +77,7 @@ class open_loop_agent:
 
                     ep_obs.append(obs.copy())
                     ep_actions.append(action.copy())
-                    ep_success.append(info['is_success'])
+                    ep_success.append([info['is_success']])
                     ep_image.append(image.copy())
                     mb_obs.append(ep_obs)
                     mb_actions.append(ep_actions)
@@ -89,8 +89,6 @@ class open_loop_agent:
                 mb_actions = np.array(mb_actions)
                 mb_success = np.array(mb_success)
                 mb_image = np.array(mb_image)
-
-                print(mb_obs.shape, mb_actions.shape, mb_success.shape, mb_image.shape)
 
                 # store the episodes
                 self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
