@@ -239,6 +239,6 @@ class open_loop_image_predictor(nn.Module):
         x = torch.cat([input, img], dim=1)
 
         x = F.relu(self.fc1(x))
-        score = F.sigmoid(self.q(x))
+        score = torch.sigmoid(self.q(x))
 
         return score
