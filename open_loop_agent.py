@@ -73,7 +73,8 @@ class open_loop_agent:
                 sample_mean = observation['achieved_goal']
                 sample_mean[2] += 0.2
                 if failure > 0:
-                    sample_cov = np.eye(self.env_params['action']) * 0.2
+                    sample_cov = np.eye(self.env_params['action']) * 0.03
+                    sample_cov[2][2] = 0.2
                 else:
                     sample_cov = np.eye(self.env_params['action']) * 0.01
                     sample_cov[2][2] = 0.2
@@ -193,6 +194,7 @@ class open_loop_agent:
             sample_mean = observation['achieved_goal']
             sample_mean[2] += 0.2
             sample_cov = np.eye(self.env_params['action']) * 0.03
+            sample_cov[2][2] = 0.2
             action = np.random.multivariate_normal(sample_mean, sample_cov, 1000)
             obs = np.repeat(obs, 1000, axis=0)
             image_tensor = torch.tensor(np.repeat(image, 1000, axis=0), dtype=torch.float32)
