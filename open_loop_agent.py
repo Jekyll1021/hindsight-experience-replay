@@ -115,6 +115,16 @@ class open_loop_agent:
             inputs = inputs.cuda()
         return inputs
 
+    def _preproc_batch_inputs(self, obs, action):
+        obs_norm = self.o_norm.normalize(obs.copy())
+        a_norm = self.a_norm.normalize(action.copy())
+        # concatenate the stuffs
+        inputs = np.concatenate([obs_norm, a_norm], axis=1)
+        inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
+        if self.args.cuda:
+            inputs = inputs.cuda()
+        return inputs
+
     # update the normalizer
     def _update_normalizer(self, episode_batch):
         mb_obs, mb_actions = episode_batch
@@ -179,11 +189,11 @@ class open_loop_agent:
             action = np.random.multivariate_normal(sample_mean, sample_cov, 1000)
             obs = np.repeat(obs, 1000, axis=0)
             image_tensor = torch.tensor(np.repeat(image, 1000, axis=0), dtype=torch.float32)
-            print(obs.shape, action.shape, image_tensor.shape)
             if self.args.cuda:
                 image_tensor = image_tensor.cuda()
             with torch.no_grad():
-                input_tensor = self._preproc_inputs(obs, action)
+                input_tensor = self._preproc_batch_inputs(obs, action)
+                print(input_tensor.shape, image_tensor.shape)
                 score = self.score_predictor(input_tensor, image_tensor)
                 ind = torch.argmax(score).item()
 
