@@ -90,6 +90,8 @@ class open_loop_agent:
                 mb_success = np.array(mb_success)
                 mb_image = np.array(mb_image)
 
+                print(mb_obs.shape, mb_actions.shape, mb_success.shape, mb_image.shape)
+
                 # store the episodes
                 self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
                 self._update_normalizer([mb_obs, mb_actions])
