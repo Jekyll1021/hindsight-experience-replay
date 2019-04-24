@@ -92,7 +92,7 @@ class open_loop_agent:
 
                 # store the episodes
                 self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
-                print(np.sum(mb_success)/len(mb_success))
+                print(np.sum(mb_success)/mb_success.size)
                 self._update_normalizer([mb_obs, mb_actions])
                 for _ in range(self.args.n_batches):
                     # train the network
