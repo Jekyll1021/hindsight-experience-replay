@@ -6,10 +6,10 @@ the replay buffer here is basically from the openai baselines code
 
 """
 class open_loop_buffer:
-    def __init__(self, env_params, buffer_size):
+    def __init__(self, env_params, buffer_size, sample_size):
         self.env_params = env_params
         self.size = buffer_size
-        self.sample_size = 1
+        self.sample_size = sample_size
         # memory management
         self.current_size = 0
         self.n_transitions_stored = 0

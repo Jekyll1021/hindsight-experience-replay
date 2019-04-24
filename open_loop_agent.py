@@ -47,7 +47,7 @@ class open_loop_agent:
         self.optim = torch.optim.Adam(self.score_predictor.parameters(), lr=self.args.lr_actor)
 
         # create the replay buffer
-        self.buffer = open_loop_buffer(self.env_params, self.args.buffer_size)
+        self.buffer = open_loop_buffer(self.env_params, self.args.buffer_size, self.args.sample_size)
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
@@ -59,9 +59,9 @@ class open_loop_agent:
         """
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            for _ in range(self.sample_size):
+            for _ in range(self.args.batch_size):
                 mb_obs, mb_actions, mb_success, mb_image = [], [], [], []
-                for _ in range(self.args.num_rollouts_per_mpi):
+                for _ in range(self.sample_size):
                     # reset the rollouts
                     ep_obs, ep_actions, ep_success, ep_image = [], [], [], []
                     # reset the environment
@@ -92,6 +92,7 @@ class open_loop_agent:
 
                 # store the episodes
                 self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
+                print(np.sum(mb_success)/len(mb_success))
                 self._update_normalizer([mb_obs, mb_actions])
                 for _ in range(self.args.n_batches):
                     # train the network
