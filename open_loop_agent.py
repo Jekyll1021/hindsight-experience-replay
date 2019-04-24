@@ -77,6 +77,7 @@ class open_loop_agent:
                 _, _, _, info = self.env.step(action)
 
                 if info['is_success'] or failure > 0:
+                    print(info['is_success'], count, failure)
                     ep_obs.append(obs.copy())
                     ep_actions.append(action.copy())
                     ep_success.append([info['is_success']])
