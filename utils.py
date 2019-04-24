@@ -50,21 +50,22 @@ def sync_grads(network):
 def _set_flat_grads(network, grads_shape, flat_grads):
     pointer = 0
     for key_name, value in network.named_parameters():
-        len_grads = np.prod(grads_shape[key_name])
-        copy_grads = flat_grads[pointer:pointer + len_grads].reshape(grads_shape[key_name])
-        copy_grads = torch.tensor(copy_grads)
-        # copy the grads
-        value.grad.data.copy_(copy_grads.data)
-        pointer += len_grads
+        if value.grad is not None:
+            len_grads = np.prod(grads_shape[key_name])
+            copy_grads = flat_grads[pointer:pointer + len_grads].reshape(grads_shape[key_name])
+            copy_grads = torch.tensor(copy_grads)
+            # copy the grads
+            value.grad.data.copy_(copy_grads.data)
+            pointer += len_grads
 
 def _get_flat_grads(network):
     grads_shape = {}
     flat_grads = None
     for key_name, value in network.named_parameters():
-        print(key_name, value)
-        grads_shape[key_name] = value.grad.data.cpu().numpy().shape
-        if flat_grads is None:
-            flat_grads = value.grad.data.cpu().numpy().flatten()
-        else:
-            flat_grads = np.append(flat_grads, value.grad.data.cpu().numpy().flatten())
+        if value.grad is not None:
+            grads_shape[key_name] = value.grad.data.cpu().numpy().shape
+            if flat_grads is None:
+                flat_grads = value.grad.data.cpu().numpy().flatten()
+            else:
+                flat_grads = np.append(flat_grads, value.grad.data.cpu().numpy().flatten())
     return flat_grads, grads_shape
