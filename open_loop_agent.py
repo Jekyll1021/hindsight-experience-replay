@@ -71,7 +71,7 @@ class open_loop_agent:
                     # start to collect samples
                     sample_mean = observation['achieved_goal']
                     sample_mean[2] += 0.2
-                    sample_cov = np.eye(self.env_params['action']) * 0.1
+                    sample_cov = np.eye(self.env_params['action']) * 0.0
                     action = np.random.multivariate_normal(sample_mean, sample_cov)
                     _, _, _, info = self.env.step(action)
 
