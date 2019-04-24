@@ -93,7 +93,8 @@ class open_loop_agent:
             self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
             print(np.sum(mb_success)/mb_success.size)
             self._update_normalizer([mb_obs, mb_actions])
-            for _ in range(self.args.n_batches):
+            for i in range(self.args.n_batches):
+                print('batch {}'.format(i))
                 # train the network
                 loss = self._update_network()
             # start to do the evaluation
