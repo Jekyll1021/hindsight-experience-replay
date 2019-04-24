@@ -37,7 +37,7 @@ class open_loop_agent:
             self.score_predictor.load_state_dict(model)
 
         # sync the networks across the cpus
-        sync_networks(self.score_predictor)
+        # sync_networks(self.score_predictor)
 
         # if use gpu
         if self.args.cuda:
@@ -176,7 +176,7 @@ class open_loop_agent:
         # start to update the network
         self.optim.zero_grad()
         loss.backward()
-        sync_grads(self.score_predictor)
+        # sync_grads(self.score_predictor)
         self.optim.step()
         # update the critic_network
         return loss
@@ -200,7 +200,6 @@ class open_loop_agent:
                 image_tensor = image_tensor.cuda()
             with torch.no_grad():
                 input_tensor = self._preproc_batch_inputs(obs, action)
-                print(input_tensor.shape, image_tensor.shape)
                 score = self.score_predictor(input_tensor, image_tensor)
                 ind = torch.argmax(score).item()
 
