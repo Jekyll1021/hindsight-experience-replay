@@ -16,7 +16,7 @@ class open_loop_buffer:
         self.buffers = {'obs': np.empty([self.size, self.env_params['obs']]),
                         'actions': np.empty([self.size, self.env_params['action']]),
                         'success': np.empty([self.size, 1]),
-                        'image': np.empty([self.size, 128, 128, 3])
+                        'image': np.empty([self.size, 512, 512, 3])
                         }
         # thread lock
         self.lock = threading.Lock()
