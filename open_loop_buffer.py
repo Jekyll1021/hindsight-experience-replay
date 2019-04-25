@@ -16,7 +16,7 @@ class open_loop_buffer:
         # create the buffer to store info
 
         self.buffers = {'obs': np.empty([self.size, self.sample_size, self.env_params['obs']]),
-                        'actions': np.empty([self.size, self.sample_size, self.env_params['goal']]),
+                        'actions': np.empty([self.size, self.sample_size, self.env_params['action']]),
                         'success': np.empty([self.size, self.sample_size, 1]),
                         'image': np.empty([self.size, self.sample_size, 128, 128, 3])
                         }
