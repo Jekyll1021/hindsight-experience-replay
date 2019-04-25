@@ -39,11 +39,9 @@ class open_loop_buffer:
         with self.lock:
             for key in self.buffers.keys():
                 temp_buffers[key] = self.buffers[key][:self.current_size].copy()
-        T = temp_buffers['actions'].shape[1]
         rollout_batch_size = temp_buffers['actions'].shape[0]
         episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
-        t_samples = np.random.randint(T, size=batch_size)
-        transitions = {key: temp_buffers[key][episode_idxs, t_samples].copy() for key in temp_buffers.keys()}
+        transitions = {key: temp_buffers[key][episode_idxs].copy() for key in temp_buffers.keys()}
         return transitions
 
     def _get_storage_idx(self, inc=None):
