@@ -69,7 +69,7 @@ class open_loop_agent:
                 image = observation['image']
                 # start to collect samples
                 if failure > 0 and count < self.sample_size * 1/3:
-                    sample_mean = observation["gripper_pose"]
+                    sample_mean = observation["gripper_pose"][:2]
                     sample_cov = np.eye(self.env_params['action']) * 0.15
                 elif failure > 0:
                     sample_mean = observation['achieved_goal'][:2]
