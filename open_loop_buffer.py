@@ -6,19 +6,17 @@ the replay buffer here is basically from the openai baselines code
 
 """
 class open_loop_buffer:
-    def __init__(self, env_params, buffer_size, sample_size):
+    def __init__(self, env_params, buffer_size):
         self.env_params = env_params
         self.size = buffer_size
-        self.sample_size = sample_size
         # memory management
         self.current_size = 0
-        self.n_transitions_stored = 0
         # create the buffer to store info
 
-        self.buffers = {'obs': np.empty([self.size, self.sample_size, self.env_params['obs']]),
-                        'actions': np.empty([self.size, self.sample_size, self.env_params['action']]),
-                        'success': np.empty([self.size, self.sample_size, 1]),
-                        'image': np.empty([self.size, self.sample_size, 128, 128, 3])
+        self.buffers = {'obs': np.empty([self.size, self.env_params['obs']]),
+                        'actions': np.empty([self.size, self.env_params['action']]),
+                        'success': np.empty([self.size, 1]),
+                        'image': np.empty([self.size, 128, 128, 3])
                         }
         # thread lock
         self.lock = threading.Lock()
@@ -34,7 +32,6 @@ class open_loop_buffer:
             self.buffers['actions'][idxs] = mb_actions
             self.buffers['image'][idxs] = mb_image
             self.buffers['success'][idxs] = mb_success
-            self.n_transitions_stored += self.sample_size * sample_size
 
     # sample the data from the replay buffer
     def sample(self, batch_size):
