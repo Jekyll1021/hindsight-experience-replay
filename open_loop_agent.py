@@ -70,14 +70,11 @@ class open_loop_agent:
                 obs = observation['observation']
                 image = observation['image']
                 # start to collect samples
-                sample_mean = observation['achieved_goal']
-                sample_mean[2] += 0.2
+                sample_mean = observation['achieved_goal'][:2]
                 if failure > 0:
                     sample_cov = np.eye(self.env_params['action']) * 0.03
-                    sample_cov[2][2] = 0.2
                 else:
                     sample_cov = np.eye(self.env_params['action']) * 0.01
-                    sample_cov[2][2] = 0.2
                 action = np.random.multivariate_normal(sample_mean, sample_cov)
                 _, _, _, info = self.env.step(action)
 
@@ -191,13 +188,10 @@ class open_loop_agent:
             obs = np.array([observation['observation']])
             image = np.array([observation['image']])
             # start to collect samples
-            sample_mean = observation['achieved_goal']
-            sample_mean[2] += 0.2
+            sample_mean = observation['achieved_goal'][:2]
             sample_cov = np.eye(self.env_params['action']) * 0.03
-            sample_cov[2][2] = 0.2
             a1 = np.random.multivariate_normal(sample_mean, sample_cov, 700)
             sample_cov = np.eye(self.env_params['action']) * 0.01
-            sample_cov[2][2] = 0.2
             a2 = np.random.multivariate_normal(sample_mean, sample_cov, 300)
             action = np.concatenate((a1, a2), axis=0)
             obs = np.repeat(obs, 1000, axis=0)
