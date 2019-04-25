@@ -63,8 +63,6 @@ class open_loop_agent:
             count = 0
             failure = int(self.sample_size * 2 / 3)
             while count < self.sample_size:
-                # reset the rollouts
-                ep_obs, ep_actions, ep_success, ep_image = [], [], [], []
                 # reset the environment
                 observation = self.env.reset()
                 obs = observation['observation']
@@ -79,14 +77,10 @@ class open_loop_agent:
                 _, _, _, info = self.env.step(action)
 
                 if info['is_success'] or failure > 0:
-                    ep_obs.append(obs.copy())
-                    ep_actions.append(action.copy())
-                    ep_success.append([info['is_success']])
-                    ep_image.append(image.copy())
-                    mb_obs.append(ep_obs)
-                    mb_actions.append(ep_actions)
-                    mb_success.append(ep_success)
-                    mb_image.append(ep_image)
+                    mb_obs.append(obs.copy())
+                    mb_actions.append(action.copy())
+                    mb_success.append([info['is_success']])
+                    mb_image.append(image.copy())
                     failure -= (1 - info['is_success'])
                     count += 1
 
