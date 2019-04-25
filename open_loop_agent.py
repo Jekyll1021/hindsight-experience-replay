@@ -6,6 +6,7 @@ from mpi4py import MPI
 from models import open_loop_image_predictor
 from utils import sync_networks, sync_grads
 from open_loop_buffer import open_loop_buffer
+from normalizer import normalizer
 
 """
 ddpg with HER (MPI-version)
@@ -20,6 +21,10 @@ class open_loop_agent:
 
         # create the network
         self.score_predictor = open_loop_image_predictor(env_params['obs'] + env_params['action'])
+
+        # create the normalizer
+        self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
+        self.a_norm = normalizer(size=env_params['action'], default_clip_range=self.args.clip_range)
 
         # load model if load_path is not None
         if self.args.load_dir != '':
@@ -87,6 +92,7 @@ class open_loop_agent:
 
             # store the episodes
             self.buffer.store_episode([mb_obs, mb_actions, mb_success, mb_image])
+            self._update_normalizer([mb_obs, mb_actions])
             for _ in range(self.args.n_batches):
                 # train the network
                 loss = self._update_network()
@@ -94,33 +100,59 @@ class open_loop_agent:
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:
                 print('[{}] epoch {}: loss {:.5f}, eval success rate {:.3f}'.format(datetime.now(), epoch, loss, success_rate))
-                torch.save(self.score_predictor.state_dict(), \
+                torch.save([self.o_norm.mean, self.o_norm.std, self.a_norm.mean, self.a_norm.std, self.score_predictor.state_dict()], \
                             self.model_path + '/model.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs, action):
+        obs_norm = self.o_norm.normalize(obs.copy())
+        a_norm = self.a_norm.normalize(action.copy())
         # concatenate the stuffs
-        inputs = np.concatenate([obs, action])
+        inputs = np.concatenate([obs_norm, a_norm])
         inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
         if self.args.cuda:
             inputs = inputs.cuda()
         return inputs
 
     def _preproc_batch_inputs(self, obs, action):
+        obs_norm = self.o_norm.normalize(obs.copy())
+        a_norm = self.a_norm.normalize(action.copy())
         # concatenate the stuffs
-        inputs = np.concatenate([obs, action], axis=1)
+        inputs = np.concatenate([obs_norm, a_norm], axis=1)
         inputs = torch.tensor(inputs, dtype=torch.float32)
         if self.args.cuda:
             inputs = inputs.cuda()
         return inputs
 
+    # update the normalizer
+    def _update_normalizer(self, episode_batch):
+        mb_obs, mb_actions = episode_batch
+
+        # pre process the obs and g
+        mb_obs, mb_actions = self._preproc_og(mb_obs, mb_actions)
+        # update
+        self.o_norm.update(mb_obs)
+        self.a_norm.update(mb_actions)
+        # recompute the stats
+        self.o_norm.recompute_stats()
+        self.a_norm.recompute_stats()
+
+    def _preproc_og(self, o, a):
+        o = np.clip(o, -self.args.clip_obs, self.args.clip_obs)
+        a = np.clip(a, -self.args.clip_obs, self.args.clip_obs)
+        return o, a
+
     # update the network
     def _update_network(self):
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
-
+        # pre-process the observation and goal
+        o, a = transitions['obs'], transitions['actions']
+        transitions['obs'], transitions['actions'] = self._preproc_og(o, a)
         # start to do the update
-        inputs_norm = np.concatenate([transitions['obs'], transitions['actions']], axis=1)
+        obs_norm = self.o_norm.normalize(transitions['obs'])
+        a_norm = self.a_norm.normalize(transitions['actions'])
+        inputs_norm = np.concatenate([obs_norm, a_norm], axis=1)
 
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
