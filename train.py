@@ -24,14 +24,12 @@ def get_env_params(env):
 
 def launch(args):
     # create the ddpg_agent
-    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='random', gripper_init_type='random', act_noise=False, obs_noise=False)
+    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='random', act_noise=False, obs_noise=False)
     # get the environment parameters
     env_params = get_env_params(env)
     # create the ddpg agent to interact with the environment
-    # ddpg_trainer = ddpg_agent(args, env, env_params)
-    # ddpg_trainer.learn()
-    open_loop_trainer = open_loop_agent(args, env, env_params)
-    open_loop_trainer.learn()
+    ddpg_trainer = ddpg_agent(args, env, env_params)
+    ddpg_trainer.learn()
 
 if __name__ == '__main__':
     # take the configuration for the HER
