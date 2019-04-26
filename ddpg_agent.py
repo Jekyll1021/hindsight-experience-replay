@@ -174,7 +174,7 @@ class ddpg_agent:
                        'ag_next': mb_ag_next,
                        }
         transitions = self.her_module.sample_her_transitions(buffer_temp, num_transitions)
-        obs, g = transitions['obs']
+        obs = transitions['obs']
         # pre process the obs and g
         transitions['obs'] = self._preproc_og(obs)
         # update
