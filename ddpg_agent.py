@@ -269,6 +269,6 @@ class ddpg_agent:
                 g = observation_new['desired_goal']
             total_success_rate.append(info['is_success'])
         total_success_rate = np.array(total_success_rate)
-        local_success_rate = np.mean(total_success_rate[:, -1])
+        local_success_rate = np.mean(total_success_rate)
         global_success_rate = MPI.COMM_WORLD.allreduce(local_success_rate, op=MPI.SUM)
         return global_success_rate / MPI.COMM_WORLD.Get_size()
