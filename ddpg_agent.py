@@ -197,8 +197,8 @@ class ddpg_agent:
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
-        transitions['obs'], transitions['g'] = self._preproc_og(o)
-        transitions['obs_next'], transitions['g_next'] = self._preproc_og(o_next)
+        transitions['obs'] = self._preproc_og(o)
+        transitions['obs_next'] = self._preproc_og(o_next)
         # start to do the update
         obs_norm = self.o_norm.normalize(transitions['obs'])
         inputs_norm = obs_norm
