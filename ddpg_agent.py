@@ -25,7 +25,6 @@ class ddpg_agent:
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
-        self.g_norm = normalizer(size=env_params['goal'], default_clip_range=self.args.clip_range)
 
         # load model if load_path is not None
         if self.args.load_dir != '':
@@ -33,8 +32,6 @@ class ddpg_agent:
             o_mean, o_std, g_mean, g_std, model = torch.load(load_path)
             self.o_norm.mean = o_mean
             self.o_norm.std = o_std
-            self.g_norm.mean = g_mean
-            self.g_norm.std = g_std
             self.actor_network.load_state_dict(model)
 
         # sync the networks across the cpus
@@ -84,9 +81,9 @@ class ddpg_agent:
                     sg = np.zeros(4)
                     hidden = np.zeros(64)
                     # start to collect samples
-                    for t in range(self.env_params['max_timesteps']):
+                    for _ in range(self.env_params['max_timesteps']):
                         with torch.no_grad():
-                            input_tensor = self._preproc_inputs(obs, g)
+                            input_tensor = self._preproc_inputs(obs)
                             pi = self.actor_network(input_tensor)
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
@@ -137,11 +134,10 @@ class ddpg_agent:
                             self.model_path + '/model.pt')
 
     # pre_process the inputs
-    def _preproc_inputs(self, obs, g):
+    def _preproc_inputs(self, obs):
         obs_norm = self.o_norm.normalize(obs)
-        g_norm = self.g_norm.normalize(g)
         # concatenate the stuffs
-        inputs = np.concatenate([obs_norm, g_norm])
+        inputs = obs_norm
         inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
         if self.args.cuda:
             inputs = inputs.cuda()
@@ -188,9 +184,8 @@ class ddpg_agent:
         self.o_norm.recompute_stats()
         self.g_norm.recompute_stats()
 
-    def _preproc_og(self, o, g):
+    def _preproc_og(self, o):
         o = np.clip(o, -self.args.clip_obs, self.args.clip_obs)
-        g = np.clip(g, -self.args.clip_obs, self.args.clip_obs)
         return o, g
 
     # soft update
@@ -203,16 +198,14 @@ class ddpg_agent:
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
-        o, o_next, g = transitions['obs'], transitions['obs_next'], transitions['g']
-        transitions['obs'], transitions['g'] = self._preproc_og(o, g)
-        transitions['obs_next'], transitions['g_next'] = self._preproc_og(o_next, g)
+        o, o_next = transitions['obs'], transitions['obs_next']
+        transitions['obs'], transitions['g'] = self._preproc_og(o)
+        transitions['obs_next'], transitions['g_next'] = self._preproc_og(o_next)
         # start to do the update
         obs_norm = self.o_norm.normalize(transitions['obs'])
-        g_norm = self.g_norm.normalize(transitions['g'])
-        inputs_norm = np.concatenate([obs_norm, g_norm], axis=1)
+        inputs_norm = obs_norm
         obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
-        g_next_norm = self.g_norm.normalize(transitions['g_next'])
-        inputs_next_norm = np.concatenate([obs_next_norm, g_next_norm], axis=1)
+        inputs_next_norm = obs_next_norm
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
@@ -263,7 +256,7 @@ class ddpg_agent:
             g = observation['desired_goal']
             for _ in range(self.env_params['max_timesteps']):
                 with torch.no_grad():
-                    input_tensor = self._preproc_inputs(obs, g)
+                    input_tensor = self._preproc_inputs(obs)
                     pi = self.actor_network(input_tensor)
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
