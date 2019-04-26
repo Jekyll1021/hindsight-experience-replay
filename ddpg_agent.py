@@ -88,7 +88,7 @@ class ddpg_agent:
                         with torch.no_grad():
                             input_tensor = self._preproc_inputs(obs, g)
                             pi = self.actor_network(input_tensor)
-                            action = self._select_actions(pi)
+                            action = self._select_actions(pi, observation)
                         # feed the actions into the environment
                         observation_new, _, _, info = self.env.step(action)
                         obs_new = observation_new['observation']
@@ -148,16 +148,17 @@ class ddpg_agent:
         return inputs
 
     # this function will choose action for the agent and do the exploration
-    def _select_actions(self, pi):
+    def _select_actions(self, pi, observation):
         action = pi.cpu().numpy().squeeze()
         # add the gaussian
         action += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*action.shape)
         action = np.clip(action, -self.env_params['action_max'], self.env_params['action_max'])
         # random actions...
-        random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
-                                            size=self.env_params['action'])
+        # random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
+        #                                     size=self.env_params['action'])
+        good_actions = np.clip((observation["achieved_goal"] - observation["gripper_pose"]) / 0.03, -self.env_params['action_max'], self.env_params['action_max'])
         # choose if use the random actions
-        action += np.random.binomial(1, self.args.random_eps, 1)[0] * (random_actions - action)
+        action += np.random.binomial(1, self.args.random_eps, 1)[0] * (good_actions - action)
         return action
 
     # update the normalizer
