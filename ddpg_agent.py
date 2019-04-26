@@ -174,15 +174,13 @@ class ddpg_agent:
                        'ag_next': mb_ag_next,
                        }
         transitions = self.her_module.sample_her_transitions(buffer_temp, num_transitions)
-        obs, g = transitions['obs'], transitions['g']
+        obs, g = transitions['obs']
         # pre process the obs and g
-        transitions['obs'], transitions['g'] = self._preproc_og(obs, g)
+        transitions['obs'] = self._preproc_og(obs)
         # update
         self.o_norm.update(transitions['obs'])
-        self.g_norm.update(transitions['g'])
         # recompute the stats
         self.o_norm.recompute_stats()
-        self.g_norm.recompute_stats()
 
     def _preproc_og(self, o):
         o = np.clip(o, -self.args.clip_obs, self.args.clip_obs)
