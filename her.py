@@ -31,7 +31,7 @@ class her_sampler:
 
         if np.sum(transitions['r']) > -np.size(transitions['r']):
             inds = np.argwhere(transitions['r'] == 0)
-            print(transitions['ag'][inds], transitions['g'][inds])
+            print(transitions['ag'][inds[0]], transitions['g'][inds[0]])
         transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:]) for k in transitions.keys()}
 
         return transitions
