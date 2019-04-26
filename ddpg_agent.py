@@ -20,8 +20,8 @@ class ddpg_agent:
         self.env_params = env_params
 
         # create the network
-        self.actor_network = actor(env_params, env_params['obs'] + env_params['goal'])
-        self.critic_network = critic(env_params, env_params['obs'] + env_params['goal'] + env_params['action'])
+        self.actor_network = actor(env_params, env_params['obs'])
+        self.critic_network = critic(env_params, env_params['obs'] + env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -186,7 +186,7 @@ class ddpg_agent:
 
     def _preproc_og(self, o):
         o = np.clip(o, -self.args.clip_obs, self.args.clip_obs)
-        return o, g
+        return o
 
     # soft update
     def _soft_update_target_network(self, target, source):
