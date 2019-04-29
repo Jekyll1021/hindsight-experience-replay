@@ -267,11 +267,9 @@ class ddpg_agent:
             if self.image:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
                 q_next_value = self.critic_target_network(inputs_next_norm_tensor, img_next_tensor, actions_next)
-                real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
             else:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor)
                 q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
-                real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
 
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
@@ -280,6 +278,10 @@ class ddpg_agent:
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
         # the q loss
+        if self.image:
+            real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
+        else:
+            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         # the actor loss
         if self.image:
