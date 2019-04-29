@@ -40,8 +40,8 @@ class ddpg_agent:
             self.actor_network.load_state_dict(model)
 
         # sync the networks across the cpus
-        sync_networks(self.actor_network)
-        sync_networks(self.critic_network)
+        # sync_networks(self.actor_network)
+        # sync_networks(self.critic_network)
         # build up the target network
         if self.image:
             self.actor_target_network = actor_image(env_params, env_params['obs'])
@@ -294,12 +294,12 @@ class ddpg_agent:
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
-        sync_grads(self.actor_network)
+        # sync_grads(self.actor_network)
         self.actor_optim.step()
         # update the critic_network
         self.critic_optim.zero_grad()
         critic_loss.backward()
-        sync_grads(self.critic_network)
+        # sync_grads(self.critic_network)
         self.critic_optim.step()
 
         return actor_loss, critic_loss
