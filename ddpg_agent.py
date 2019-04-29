@@ -14,10 +14,11 @@ ddpg with HER (MPI-version)
 
 """
 class ddpg_agent:
-    def __init__(self, args, env, env_params):
+    def __init__(self, args, env, env_params, image=True):
         self.args = args
         self.env = env
         self.env_params = env_params
+        self.image = image
 
         # create the network
         self.actor_network = actor(env_params, env_params['obs'])
@@ -56,7 +57,7 @@ class ddpg_agent:
         # her sampler
         self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env.compute_reward)
         # create the replay buffer
-        self.buffer = replay_buffer(self.env_params, self.args.buffer_size, self.her_module.sample_her_transitions)
+        self.buffer = replay_buffer(self.env_params, self.args.buffer_size, self.her_module.sample_her_transitions, image=self.image)
 
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
@@ -70,27 +71,42 @@ class ddpg_agent:
         for epoch in range(self.args.n_epochs):
             actor_total_loss = critic_total_loss = 0
             for _ in range(self.args.n_cycles):
-                mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
+                if self.image:
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
+                else:
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
                     # reset the rollouts
-                    ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
+                    if self.image:
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image = [], [], [], [], [], [], []
+                    else:
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                     # reset the environment
                     observation = self.env.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
+                    img = observation['image']
                     sg = np.zeros(4)
                     hidden = np.zeros(64)
+                    if self.image:
+                        image_tensor = torch.tensor(observation['image'], dtype=torch.float32).unsqueeze(0)
+                        if self.args.cuda:
+                            image_tensor = image_tensor.cuda()
                     # start to collect samples
                     for _ in range(self.env_params['max_timesteps']):
                         with torch.no_grad():
                             input_tensor = self._preproc_inputs(obs)
-                            pi = self.actor_network(input_tensor)
+                            if self.image:
+                                pi = self.actor_network(input_tensor, image_tensor)
+                            else:
+                                pi = self.actor_network(input_tensor)
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
                         observation_new, _, _, info = self.env.step(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
+                        img_new = observation_new['image']
                         # append rollouts
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
@@ -98,19 +114,26 @@ class ddpg_agent:
                         ep_sg.append(sg.copy())
                         ep_actions.append(action.copy())
                         ep_hidden.append(hidden.copy())
+                        if self.image:
+                            ep_image.append(img.copy())
                         # re-assign the observation
                         obs = obs_new
                         ag = ag_new
+                        img = img_new
                     ep_obs.append(obs.copy())
                     ep_ag.append(ag.copy())
                     ep_sg.append(sg.copy())
                     ep_hidden.append(hidden.copy())
+                    if self.image:
+                        ep_image.append(img.copy())
                     mb_obs.append(ep_obs)
                     mb_ag.append(ep_ag)
                     mb_g.append(ep_g)
                     mb_sg.append(ep_sg)
                     mb_actions.append(ep_actions)
                     mb_hidden.append(ep_hidden)
+                    if self.image:
+                        mb_image.append(ep_image)
                 # convert them into arrays
                 mb_obs = np.array(mb_obs)
                 mb_ag = np.array(mb_ag)
@@ -118,8 +141,12 @@ class ddpg_agent:
                 mb_sg = np.array(mb_sg)
                 mb_actions = np.array(mb_actions)
                 mb_hidden = np.array(mb_hidden)
+                if self.image:
+                    mb_image = np.array(mb_image)
+                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
                 # store the episodes
-                self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
+                else:
+                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
                 for _ in range(self.args.n_batches):
                     # train the network
@@ -214,17 +241,28 @@ class ddpg_agent:
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
+        if self.image:
+            img_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
+            img_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
         if self.args.cuda:
             inputs_norm_tensor = inputs_norm_tensor.cuda()
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
             actions_tensor = actions_tensor.cuda()
             r_tensor = r_tensor.cuda()
+            if self.image:
+                img_tensor = img_tensor.cuda()
+                img_next_tensor = img_next_tensor.cuda()
         # calculate the target Q value function
         with torch.no_grad():
             # do the normalization
             # concatenate the stuffs
-            actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
+            if self.image:
+                actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
+                q_next_value = self.critic_target_network(inputs_next_norm_tensor, img_next_tensor, actions_next)
+            else:
+                actions_next = self.actor_target_network(inputs_next_norm_tensor)
+                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
+
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value
             target_q_value = target_q_value.detach()
@@ -235,8 +273,12 @@ class ddpg_agent:
         real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         # the actor loss
-        actions_real = self.actor_network(inputs_norm_tensor)
-        actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+        if self.image:
+            actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
+            actor_loss = -self.critic_network(inputs_norm_tensor, img_tensor, actions_real).mean()
+        else:
+            actions_real = self.actor_network(inputs_norm_tensor)
+            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         # start to update the network
         self.actor_optim.zero_grad()
@@ -258,10 +300,17 @@ class ddpg_agent:
             observation = self.env.reset()
             obs = observation['observation']
             g = observation['desired_goal']
+            if self.image:
+                img_tensor = torch.tensor(observation['image'], dtype=torch.float32).unsqueeze(0)
+                if self.args.cuda:
+                    img_tensor = img_tensor.cuda()
             for _ in range(self.env_params['max_timesteps']):
                 with torch.no_grad():
                     input_tensor = self._preproc_inputs(obs)
-                    pi = self.actor_network(input_tensor)
+                    if self.image:
+                        pi = self.actor_network(input_tensor, img_tensor)
+                    else:
+                        pi = self.actor_network(input_tensor)
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
                 observation_new, _, _, info = self.env.step(actions)

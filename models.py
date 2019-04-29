@@ -49,6 +49,81 @@ class critic(nn.Module):
 
         return q_value
 
+# define the actor network
+class actor_image(nn.Module):
+    def __init__(self, env_params, input_num, output_num=4):
+        super(actor_image, self).__init__()
+        self.feature_extraction_model = models.alexnet(pretrained=True)
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
+        self.image_fc2 = nn.Linear(4096, 4096)
+        self.image_fc3 = nn.Linear(4096, 64)
+
+        self.input_process = nn.Linear(input_num, 64)
+
+        self.fc1 = nn.Linear(64*2, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.action_out = nn.Linear(64, output_num)
+
+        self.max_action = env_params['action_max']
+
+    def forward(self, x, image):
+        image = image.permute((0, 3, 1, 2)).float()
+        image = self.feature_extraction_model.features(image)
+        image = self.avgpool(image)
+        image = image.view(image.size(0), -1)
+        image = F.relu(self.image_fc1(image))
+        image = F.relu(self.image_fc2(image))
+        image = self.image_fc3(image)
+
+        x = self.input_process(x)
+
+        x = torch.cat([x, image], dim=1)
+
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+
+        actions = self.max_action * torch.tanh(self.action_out(x))
+
+        return actions
+
+class critic_image(nn.Module):
+    def __init__(self, env_params, input_num):
+        super(critic_image, self).__init__()
+        self.max_action = env_params['action_max']
+
+        self.feature_extraction_model = models.alexnet(pretrained=True)
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
+        self.image_fc2 = nn.Linear(4096, 4096)
+        self.image_fc3 = nn.Linear(4096, 64)
+
+        self.input_process = nn.Linear(input_num, 64)
+
+        self.fc1 = nn.Linear(64*2, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.q_out = nn.Linear(64, 1)
+
+    def forward(self, x, image, actions):
+        image = image.permute((0, 3, 1, 2)).float()
+        image = self.feature_extraction_model.features(image)
+        image = self.avgpool(image)
+        image = image.view(image.size(0), -1)
+        image = F.relu(self.image_fc1(image))
+        image = F.relu(self.image_fc2(image))
+        image = self.image_fc3(image)
+
+        x = torch.cat([x, actions / self.max_action], dim=1)
+        x = self.input_process(x)
+
+        x = torch.cat([x, image], dim=1)
+
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        q_value = self.q_out(x)
+
+        return q_value
+
 class actor_recurrent(nn.Module):
     def __init__(self, env_params, input_num, output_num=4, ee_pose=False):
         super(actor_recurrent, self).__init__()
