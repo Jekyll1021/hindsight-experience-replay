@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import numpy as np
 from mpi4py import MPI
-from models import actor, critic
+from models import actor, critic, actor_image, critic_image
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
@@ -21,8 +21,12 @@ class ddpg_agent:
         self.image = image
 
         # create the network
-        self.actor_network = actor(env_params, env_params['obs'])
-        self.critic_network = critic(env_params, env_params['obs'] + env_params['action'])
+        if self.image:
+            self.actor_network = actor_image(env_params, env_params['obs'])
+            self.critic_network = critic_image(env_params, env_params['obs'] + env_params['action'])
+        else:
+            self.actor_network = actor(env_params, env_params['obs'])
+            self.critic_network = critic(env_params, env_params['obs'] + env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -39,8 +43,12 @@ class ddpg_agent:
         sync_networks(self.actor_network)
         sync_networks(self.critic_network)
         # build up the target network
-        self.actor_target_network = actor(env_params, env_params['obs'])
-        self.critic_target_network = critic(env_params, env_params['obs'] + env_params['action'])
+        if self.image:
+            self.actor_target_network = actor_image(env_params, env_params['obs'])
+            self.critic_target_network = critic_image(env_params, env_params['obs'] + env_params['action'])
+        else:
+            self.actor_target_network = actor(env_params, env_params['obs'])
+            self.critic_target_network = critic(env_params, env_params['obs'] + env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
         self.critic_target_network.load_state_dict(self.critic_network.state_dict())
