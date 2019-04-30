@@ -3,6 +3,9 @@ from models import actor
 from arguments import get_args
 import gym
 import numpy as np
+import cv2
+
+import os
 
 # process the inputs
 # def process_inputs(o, g, o_mean, o_std, g_mean, g_std, args):
@@ -17,6 +20,9 @@ def process_inputs(o, o_mean, o_std, args):
     return inputs
 
 if __name__ == '__main__':
+    path = "/checkpoint/jdong1021/visualization"
+    os.makedirs(path)
+
     args = get_args()
     use_image = True
     # load the model param
@@ -38,14 +44,17 @@ if __name__ == '__main__':
     actor_network.load_state_dict(model)
     actor_network.eval()
     for i in range(args.demo_length):
+        path_ind = os.path.join(path, str(i))
+        os.makedirs(path_ind)
         observation = env.reset()
         # start to do the demo
         obs = observation['observation']
         g = observation['desired_goal']
         img = observation['image']
         for t in range(env._max_episode_steps):
-            env.render()
+            demo_img = env.render('rgb_array')
             # inputs = process_inputs(obs, g, o_mean, o_std, g_mean, g_std, args)
+            cv2.imwrite(os.path.join(path_ind, str(t)+".png"), demo_img)
             inputs = process_inputs(obs, o_mean, o_std, args)
             with torch.no_grad():
                 if use_image:
@@ -57,5 +66,6 @@ if __name__ == '__main__':
             # put actions into the environment
             observation_new, reward, _, info = env.step(action)
             obs = observation_new['observation']
-            img = observation['image']
+            img = observation_new['image']
+        cv2.imwrite(path_ind+str(t)+".png", img * 255)
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
