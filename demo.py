@@ -1,5 +1,5 @@
 import torch
-from models import actor
+from models import actor, actor_image
 from arguments import get_args
 import gym
 import numpy as np
@@ -40,7 +40,10 @@ if __name__ == '__main__':
                   'action_max': env.action_space.high[0],
                   }
     # create the actor network
-    actor_network = actor(env_params)
+    if use_image:
+        actor_network = actor_image(env_params, env_params['obs'])
+    else:
+        actor_network = actor(env_params, env_params['obs'])
     actor_network.load_state_dict(model)
     actor_network.eval()
     for i in range(args.demo_length):
