@@ -171,7 +171,7 @@ class ddpg_agent:
                 print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
                     datetime.now(), epoch, actor_total_loss, critic_total_loss, success_rate))
 
-                print([p.name for p in self.actor_network.parameters()])
+                print([p for p in self.actor_network.parameters()])
                 torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                             self.model_path + '/model.pt')
 
