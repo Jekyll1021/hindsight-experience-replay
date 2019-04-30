@@ -57,4 +57,5 @@ if __name__ == '__main__':
             # put actions into the environment
             observation_new, reward, _, info = env.step(action)
             obs = observation_new['observation']
+            img = observation['image']
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
