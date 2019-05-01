@@ -76,7 +76,7 @@ class ddpg_agent:
         """
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            actor_total_loss = critic_total_loss = []
+
             for _ in range(self.args.n_cycles):
                 if self.image:
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
@@ -155,10 +155,11 @@ class ddpg_agent:
                 else:
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
+
+                actor_total_loss = critic_total_loss = []
                 for _ in range(self.args.n_batches):
                     # train the network
                     actor_loss, critic_loss = self._update_network()
-                    print(actor_loss, critic_loss)
                     actor_total_loss.append(actor_loss)
                     critic_total_loss.append(critic_loss)
                 # soft update
