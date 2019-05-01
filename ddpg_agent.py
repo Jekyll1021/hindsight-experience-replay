@@ -326,9 +326,13 @@ class ddpg_agent:
                         pi = self.actor_network(input_tensor)
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
-                observation_new, _, _, info = e.step(actions)
-                obs = observation_new['observation']
-                g = observation_new['desired_goal']
+                observation, _, _, info = e.step(actions)
+                obs = observation['observation']
+                g = observation['desired_goal']
+                if self.image:
+                    img_tensor = torch.tensor(observation['image'], dtype=torch.float32).unsqueeze(0)
+                    if self.args.cuda:
+                        img_tensor = img_tensor.cuda()
             total_success_rate.append(info['is_success'])
         total_success_rate = np.array(total_success_rate)
         local_success_rate = np.mean(total_success_rate)
