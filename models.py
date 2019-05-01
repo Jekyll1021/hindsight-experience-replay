@@ -53,15 +53,15 @@ class critic(nn.Module):
 class actor_image(nn.Module):
     def __init__(self, env_params, input_num, output_num=4):
         super(actor_image, self).__init__()
-        # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
-        # self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
-        # self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
-        # self.image_fc2 = nn.Linear(4096, 4096)
-        # self.image_fc3 = nn.Linear(4096, 64)
+        self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
+        self.image_fc2 = nn.Linear(4096, 4096)
+        self.image_fc3 = nn.Linear(4096, 64)
 
-        self.resnet = models.resnet18(pretrained=True).eval()
-        num_ftrs = self.resnet.fc.in_features
-        self.resnet.fc = nn.Linear(num_ftrs, 64)
+        # self.resnet = models.resnet18(pretrained=True).eval()
+        # num_ftrs = self.resnet.fc.in_features
+        # self.resnet.fc = nn.Linear(num_ftrs, 64)
 
         self.input_process = nn.Linear(input_num, 64)
 
@@ -73,14 +73,14 @@ class actor_image(nn.Module):
 
     def forward(self, x, image):
         image = image.permute((0, 3, 1, 2)).float()
-        # image = self.feature_extraction_model(image)
-        # image = self.avgpool(image)
-        # image = image.view(image.size(0), -1)
-        # image = F.relu(self.image_fc1(image))
-        # image = F.relu(self.image_fc2(image))
-        # image = self.image_fc3(image)
+        image = self.feature_extraction_model(image)
+        image = self.avgpool(image)
+        image = image.view(image.size(0), -1)
+        image = F.relu(self.image_fc1(image))
+        image = F.relu(self.image_fc2(image))
+        image = self.image_fc3(image)
 
-        image = self.resnet(image)
+        # image = self.resnet(image)
 
         x = self.input_process(x)
 
@@ -98,14 +98,14 @@ class critic_image(nn.Module):
         super(critic_image, self).__init__()
         self.max_action = env_params['action_max']
 
-        # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
-        # self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-        # self.image_fc1 = nn.Linear(256 * 7 * 7, 4096)
-        # self.image_fc2 = nn.Linear(4096, 4096)
-        # self.image_fc3 = nn.Linear(4096, 64)
-        self.resnet = models.resnet18(pretrained=True).eval()
-        num_ftrs = self.resnet.fc.in_features
-        self.resnet.fc = nn.Linear(num_ftrs, 64)
+        self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.image_fc1 = nn.Linear(256 * 7 * 7, 4096)
+        self.image_fc2 = nn.Linear(4096, 4096)
+        self.image_fc3 = nn.Linear(4096, 64)
+        # self.resnet = models.resnet18(pretrained=True).eval()
+        # num_ftrs = self.resnet.fc.in_features
+        # self.resnet.fc = nn.Linear(num_ftrs, 64)
 
         self.input_process = nn.Linear(input_num, 64)
 
@@ -115,13 +115,13 @@ class critic_image(nn.Module):
 
     def forward(self, x, image, actions):
         image = image.permute((0, 3, 1, 2)).float()
-        # image = self.feature_extraction_model(image)
-        # image = self.avgpool(image)
-        # image = image.view(image.size(0), -1)
-        # image = F.relu(self.image_fc1(image))
-        # image = F.relu(self.image_fc2(image))
-        # image = self.image_fc3(image)
-        image = self.resnet(image)
+        image = self.feature_extraction_model(image)
+        image = self.avgpool(image)
+        image = image.view(image.size(0), -1)
+        image = F.relu(self.image_fc1(image))
+        image = F.relu(self.image_fc2(image))
+        image = self.image_fc3(image)
+        # image = self.resnet(image)
 
         x = torch.cat([x, actions / self.max_action], dim=1)
         x = self.input_process(x)
