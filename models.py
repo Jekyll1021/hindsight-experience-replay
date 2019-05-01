@@ -61,7 +61,7 @@ class actor_image(nn.Module):
 
         self.resnet = models.resnet18(pretrained=True).eval()
         num_ftrs = self.resnet.fc.in_features * 7 * 7
-        resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs * 7 * 7, 64)
 
         self.input_process = nn.Linear(input_num, 64)
@@ -106,7 +106,7 @@ class critic_image(nn.Module):
         # self.image_fc3 = nn.Linear(4096, 64)
         self.resnet = models.resnet18(pretrained=True).eval()
         num_ftrs = self.resnet.fc.in_features * 7 * 7
-        resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+        self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs * 7 * 7, 64)
 
         self.input_process = nn.Linear(input_num, 64)
