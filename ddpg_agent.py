@@ -335,6 +335,5 @@ class ddpg_agent:
                         img_tensor = img_tensor.cuda()
             total_success_rate.append(info['is_success'])
         total_success_rate = np.array(total_success_rate)
-        print(total_success_rate)
         local_success_rate = np.mean(total_success_rate)
         return local_success_rate
