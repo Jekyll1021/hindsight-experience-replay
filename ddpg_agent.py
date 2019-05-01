@@ -283,6 +283,7 @@ class ddpg_agent:
         else:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
+        critic_loss_value = critic_loss.item()
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
@@ -291,6 +292,7 @@ class ddpg_agent:
             actions_real = self.actor_network(inputs_norm_tensor)
             actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
+        actor_loss_value = actor_loss.item()
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
@@ -302,7 +304,7 @@ class ddpg_agent:
         # sync_grads(self.critic_network)
         self.critic_optim.step()
 
-        return actor_loss.item(), critic_loss.item()
+        return actor_loss_value, critic_loss_value
 
     # do the evaluation
     def _eval_agent(self):
@@ -330,5 +332,4 @@ class ddpg_agent:
             total_success_rate.append(info['is_success'])
         total_success_rate = np.array(total_success_rate)
         local_success_rate = np.mean(total_success_rate)
-        global_success_rate = MPI.COMM_WORLD.allreduce(local_success_rate, op=MPI.SUM)
-        return global_success_rate / MPI.COMM_WORLD.Get_size()
+        return local_success_rate
