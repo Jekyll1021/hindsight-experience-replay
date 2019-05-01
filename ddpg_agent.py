@@ -191,7 +191,10 @@ class ddpg_agent:
         good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1]), -self.env_params['action_max'], self.env_params['action_max'])
         # choose if use the random actions
         if np.random.uniform() < self.args.random_eps:
+            print("use_good_action")
             action = good_action
+        else:
+            print("not_good_action")
         return action
 
     # update the normalizer
