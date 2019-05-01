@@ -242,6 +242,7 @@ class ddpg_agent:
         inputs_norm = obs_norm
         obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
         inputs_next_norm = obs_next_norm
+        print("avg rewards {}".format(np.mean(transitions['r'])))
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
