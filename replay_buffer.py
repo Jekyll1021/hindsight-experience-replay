@@ -34,7 +34,7 @@ class replay_buffer:
                             'hidden': np.empty([self.size, self.T + 1, 64])
                             }
         if image:
-            self.buffers["image"] = np.empty([self.size, self.T + 1, 256, 256, 3])
+            self.buffers["image"] = np.empty([self.size, self.T + 1, 224, 224, 3])
         # thread lock
         self.lock = threading.Lock()
 
