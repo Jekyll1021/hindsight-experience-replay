@@ -159,8 +159,8 @@ class ddpg_agent:
                 for _ in range(self.args.n_batches):
                     # train the network
                     actor_loss, critic_loss = self._update_network()
-                    actor_total_loss.append(actor_loss)
-                    critic_total_loss.append(critic_loss)
+                    actor_total_loss.append(actor_loss.item())
+                    critic_total_loss.append(critic_loss.item())
                 # soft update
                 self._soft_update_target_network(self.actor_target_network, self.actor_network)
                 self._soft_update_target_network(self.critic_target_network, self.critic_network)
