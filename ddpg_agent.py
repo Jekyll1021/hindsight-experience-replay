@@ -110,6 +110,7 @@ class ddpg_agent:
                             else:
                                 pi = self.actor_network(input_tensor)
                             action = self._select_actions(pi, observation)
+                            print(action)
                         # feed the actions into the environment
                         observation_new, _, _, info = self.env.step(action)
                         obs_new = observation_new['observation']
