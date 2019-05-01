@@ -190,7 +190,7 @@ class ddpg_agent:
         offset = (observation["achieved_goal"] - observation["gripper_pose"]) / 0.05
         good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1]), -self.env_params['action_max'], self.env_params['action_max'])
         # choose if use the random actions
-        if np.random.uniform < self.args.random_eps:
+        if np.random.uniform() < self.args.random_eps:
             action = good_action
         return action
 
