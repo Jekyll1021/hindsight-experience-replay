@@ -88,7 +88,8 @@ class ddpg_agent:
                     else:
                         ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                     # reset the environment
-                    observation = self.env.reset()
+                    e = self.env()
+                    observation = e.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
                     g = observation['desired_goal']
