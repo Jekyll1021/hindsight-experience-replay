@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import numpy as np
 from models import actor, critic, actor_image, critic_image
-from utils import sync_networks, sync_grads
+# from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
 from her import her_sampler
@@ -158,6 +158,7 @@ class ddpg_agent:
                 for _ in range(self.args.n_batches):
                     # train the network
                     actor_loss, critic_loss = self._update_network()
+                    print(actor_loss, critic_loss)
                     actor_total_loss.append(actor_loss)
                     critic_total_loss.append(critic_loss)
                 # soft update
