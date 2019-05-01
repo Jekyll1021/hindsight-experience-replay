@@ -24,7 +24,7 @@ def get_env_params(env):
 
 def launch(args):
     # create the ddpg_agent
-    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='random', act_noise=False, obs_noise=False)
+    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
     # get the environment parameters
     env_params = get_env_params(env)
     # create the ddpg agent to interact with the environment

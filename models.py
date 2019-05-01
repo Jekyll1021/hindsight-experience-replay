@@ -92,9 +92,9 @@ class critic_image(nn.Module):
         super(critic_image, self).__init__()
         self.max_action = env_params['action_max']
 
-        # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
-        resnet = models.resnet50(pretrained=True).eval()
-        self.feature_extraction_model = nn.Sequential(list(resnet.children())[:-2])
+        self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
+        # resnet = models.resnet50(pretrained=True).eval()
+        # self.feature_extraction_model = nn.Sequential(list(resnet.children())[:-2])
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.image_fc1 = nn.Linear(256 * 7 * 7, 4096)
         self.image_fc2 = nn.Linear(4096, 4096)
