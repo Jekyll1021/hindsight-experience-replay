@@ -77,7 +77,7 @@ class ddpg_agent:
         """
         # start to collect samples
         for epoch in range(self.args.n_epochs):
-            actor_total_loss = critic_total_loss = 0
+            actor_total_loss = critic_total_loss = []
             for _ in range(self.args.n_cycles):
                 if self.image:
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
@@ -159,17 +159,16 @@ class ddpg_agent:
                 for _ in range(self.args.n_batches):
                     # train the network
                     actor_loss, critic_loss = self._update_network()
-                    actor_total_loss += actor_loss
-                    critic_total_loss += critic_loss
+                    actor_total_loss.append(actor_loss)
+                    critic_total_loss.append(critic_loss)
                 # soft update
                 self._soft_update_target_network(self.actor_target_network, self.actor_network)
                 self._soft_update_target_network(self.critic_target_network, self.critic_network)
             # start to do the evaluation
-            actor_total_loss /= (self.args.n_cycles * self.args.n_batches)
             success_rate = self._eval_agent()
             if MPI.COMM_WORLD.Get_rank() == 0:
                 print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
-                    datetime.now(), epoch, actor_total_loss, critic_total_loss, success_rate))
+                    datetime.now(), epoch, np.mean(actor_total_loss), np.mean(critic_total_loss), success_rate))
 
                 torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                             self.model_path + '/model.pt')
