@@ -188,9 +188,10 @@ class ddpg_agent:
         # random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
         #                                     size=self.env_params['action'])
         offset = (observation["achieved_goal"] - observation["gripper_pose"]) / 0.05
-        good_actions = np.clip(np.array([offset[0], offset[1], offset[2], 1]), -self.env_params['action_max'], self.env_params['action_max'])
+        good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1]), -self.env_params['action_max'], self.env_params['action_max'])
         # choose if use the random actions
-        action += np.random.binomial(1, self.args.random_eps, 1)[0] * (good_actions - action)
+        if np.random.uniform < self.args.random_eps:
+            action = good_action
         return action
 
     # update the normalizer
