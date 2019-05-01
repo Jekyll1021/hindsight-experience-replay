@@ -59,7 +59,7 @@ class actor_image(nn.Module):
         # self.image_fc2 = nn.Linear(4096, 4096)
         # self.image_fc3 = nn.Linear(4096, 64)
 
-        self.resnet = models.resnet50(pretrained=True).eval()
+        self.resnet = models.resnet18(pretrained=True).eval()
         num_ftrs = self.resnet.fc.in_features
         self.resnet.fc = nn.Linear(num_ftrs, 64)
 
@@ -103,7 +103,7 @@ class critic_image(nn.Module):
         # self.image_fc1 = nn.Linear(256 * 7 * 7, 4096)
         # self.image_fc2 = nn.Linear(4096, 4096)
         # self.image_fc3 = nn.Linear(4096, 64)
-        self.resnet = models.resnet50(pretrained=True).eval()
+        self.resnet = models.resnet18(pretrained=True).eval()
         num_ftrs = self.resnet.fc.in_features
         self.resnet.fc = nn.Linear(num_ftrs, 64)
 
