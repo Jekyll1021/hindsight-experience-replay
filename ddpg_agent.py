@@ -2,7 +2,6 @@ import torch
 import os
 from datetime import datetime
 import numpy as np
-from mpi4py import MPI
 from models import actor, critic, actor_image, critic_image
 from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
@@ -166,12 +165,11 @@ class ddpg_agent:
                 self._soft_update_target_network(self.critic_target_network, self.critic_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
-            if MPI.COMM_WORLD.Get_rank() == 0:
-                print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
-                    datetime.now(), epoch, np.mean(actor_total_loss), np.mean(critic_total_loss), success_rate))
+            print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
+                datetime.now(), epoch, np.mean(actor_total_loss), np.mean(critic_total_loss), success_rate))
 
-                torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
-                            self.model_path + '/model.pt')
+            torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
+                        self.model_path + '/model.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):

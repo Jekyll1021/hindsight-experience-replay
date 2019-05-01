@@ -2,8 +2,8 @@ import numpy as np
 import gym
 import os, sys
 from arguments import get_args
-from mpi4py import MPI
-from subprocess import CalledProcessError
+# from mpi4py import MPI
+# from subprocess import CalledProcessError
 from ddpg_agent import ddpg_agent
 from open_loop_agent import open_loop_agent
 
@@ -33,16 +33,16 @@ def launch(args):
 
 if __name__ == '__main__':
     # take the configuration for the HER
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['IN_MPI'] = '1'
+    # os.environ['OMP_NUM_THREADS'] = '1'
+    # os.environ['MKL_NUM_THREADS'] = '1'
+    # os.environ['IN_MPI'] = '1'
     # get the params
     args = get_args()
-    if MPI.COMM_WORLD.Get_rank() == 0:
-        if not os.path.exists(args.save_dir):
-            os.mkdir(args.save_dir)
-        # path to save the model
-        model_path = os.path.join(args.save_dir, args.env_name)
-        if not os.path.exists(model_path):
-            os.mkdir(model_path)
+    # if MPI.COMM_WORLD.Get_rank() == 0:
+    if not os.path.exists(args.save_dir):
+        os.mkdir(args.save_dir)
+    # path to save the model
+    model_path = os.path.join(args.save_dir, args.env_name)
+    if not os.path.exists(model_path):
+        os.mkdir(model_path)
     launch(args)
