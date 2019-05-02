@@ -235,7 +235,7 @@ class ddpg_agent:
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
-        counter = torch.tensor((1-o[:, -1:]).squeeze(), dtype=torch.float32)
+        counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         print(counter)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
