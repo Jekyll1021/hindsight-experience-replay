@@ -59,15 +59,16 @@ class actor_image(nn.Module):
         # self.image_fc2 = nn.Linear(4096, 4096)
         # self.image_fc3 = nn.Linear(4096, 64)
 
-        self.resnet = models.resnet18(pretrained=True).eval()
+        self.resnet = models.resnet18(pretrained=True)
+        self.resnet.eval()
         num_ftrs = self.resnet.fc.in_features * 7 * 7
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-        self.resnet.fc = nn.Linear(num_ftrs, 64)
+        self.resnet.fc = nn.Linear(num_ftrs, 512)
 
-        self.input_process = nn.Linear(input_num, 64)
+        self.input_process = nn.Linear(input_num, 512)
 
-        self.fc1 = nn.Linear(64*2, 64)
-        self.fc2 = nn.Linear(64, 64)
+        self.fc1 = nn.Linear(512*2, 128)
+        self.fc2 = nn.Linear(128, 64)
         self.action_out = nn.Linear(64, output_num)
 
         self.max_action = env_params['action_max']
@@ -83,9 +84,9 @@ class actor_image(nn.Module):
         # image = F.relu(self.image_fc2(image))
         # image = self.image_fc3(image)
 
-        image = self.resnet(image)
+        image = F.relu(self.resnet(image))
 
-        x = self.input_process(x)
+        x = F.relu(self.input_process(x))
 
         x = torch.cat([x, image], dim=1)
 
@@ -106,15 +107,16 @@ class critic_image(nn.Module):
         # self.image_fc1 = nn.Linear(256 * 7 * 7, 4096)
         # self.image_fc2 = nn.Linear(4096, 4096)
         # self.image_fc3 = nn.Linear(4096, 64)
-        self.resnet = models.resnet18(pretrained=True).eval()
+        self.resnet = models.resnet18(pretrained=True)
+        self.resnet.eval()
         num_ftrs = self.resnet.fc.in_features * 7 * 7
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-        self.resnet.fc = nn.Linear(num_ftrs, 64)
+        self.resnet.fc = nn.Linear(num_ftrs, 512)
 
-        self.input_process = nn.Linear(input_num, 64)
+        self.input_process = nn.Linear(input_num, 512)
 
-        self.fc1 = nn.Linear(64*2, 64)
-        self.fc2 = nn.Linear(64, 64)
+        self.fc1 = nn.Linear(512*2, 128)
+        self.fc2 = nn.Linear(128, 64)
         self.q_out = nn.Linear(64, 1)
         self.depth = env_params['depth']
 
@@ -127,16 +129,16 @@ class critic_image(nn.Module):
         # image = F.relu(self.image_fc1(image))
         # image = F.relu(self.image_fc2(image))
         # image = self.image_fc3(image)
-        image = self.resnet(image)
+        image = F.relu(self.resnet(image))
 
         x = torch.cat([x, actions / self.max_action], dim=1)
-        x = self.input_process(x)
+        x = F.relu(self.input_process(x))
 
         x = torch.cat([x, image], dim=1)
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        q_value = self.q_out(x)
+        q_value = torch.tanh(self.q_out(x))
 
         return q_value
 
