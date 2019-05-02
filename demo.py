@@ -1,5 +1,5 @@
 import torch
-from models import actor, actor_image
+from models import actor, actor_image, critic, critic_image
 from arguments import get_args
 import gym
 import numpy as np
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # load the model param
     model_path = args.save_dir + args.env_name + '/model.pt'
     # o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
-    o_mean, o_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
+    o_mean, o_std, actor_model, critic_model = torch.load(model_path, map_location=lambda storage, loc: storage)
     # create the environment
     env = gym.make(args.env_name, reward_type='sparse', goal_type='fixed', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
     # get the env param
@@ -43,9 +43,11 @@ if __name__ == '__main__':
     # create the actor network
     if use_image:
         actor_network = actor_image(env_params, env_params['obs'])
+        critic_network = critic_image(env_params, env_params['obs'] + env_params['action'])
     else:
         actor_network = actor(env_params, env_params['obs'])
-    actor_network.load_state_dict(model)
+        critic_network = critic_image(env_params, env_params['obs'] + env_params['action'])
+    actor_network.load_state_dict(actor_model)
     actor_network.eval()
     for i in range(args.demo_length):
         path_ind = os.path.join(path, str(i))
@@ -64,9 +66,13 @@ if __name__ == '__main__':
                 if use_image:
                     image_tensor = torch.tensor([img], dtype=torch.float32)
                     pi = actor_network(inputs, image_tensor)
+                    q_value = critic_network(inputs, image_tensor, pi)
                 else:
                     pi = actor_network(inputs)
+                    q_value = critic_network(inputs, pi)
             action = pi.detach().numpy().squeeze()
+            value = q_value.detach().item()
+            print("rollout: {}, step: {}, q_value: {}".format(i, t, value))
             # put actions into the environment
             observation_new, reward, _, info = env.step(action)
             obs = observation_new['observation']
