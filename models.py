@@ -53,6 +53,7 @@ class critic(nn.Module):
 class actor_image(nn.Module):
     def __init__(self, env_params, input_num, output_num=4):
         super(actor_image, self).__init__()
+        print("creating actor model with image input...")
         # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
         # self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         # self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
@@ -101,7 +102,7 @@ class critic_image(nn.Module):
     def __init__(self, env_params, input_num):
         super(critic_image, self).__init__()
         self.max_action = env_params['action_max']
-
+        print("creating critic model with image input...")
         # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
         # self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         # self.image_fc1 = nn.Linear(256 * 7 * 7, 4096)
@@ -139,7 +140,6 @@ class critic_image(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         q_value = F.sigmoid(self.q_out(x))
-        print(q_value, self.q_out(x))
 
         return q_value
 
