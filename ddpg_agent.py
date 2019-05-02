@@ -235,6 +235,8 @@ class ddpg_agent:
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
+        counter = o[:, -1:]
+        print(counter)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
         # start to do the update
@@ -271,7 +273,7 @@ class ddpg_agent:
                 q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
 
             q_next_value = q_next_value.detach()
-            target_q_value = r_tensor + self.args.gamma * q_next_value
+            target_q_value = r_tensor + self.args.gamma * q_next_value * counter
             target_q_value = target_q_value.detach()
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
