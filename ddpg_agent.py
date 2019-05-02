@@ -169,6 +169,7 @@ class ddpg_agent:
 
             torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict(), self.critic_network.state_dict()], \
                         self.model_path + '/model.pt')
+            print("file saved at: {}".format(self.model_path + '/model.pt'))
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):
