@@ -169,9 +169,6 @@ class ddpg_agent:
 
             torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                         self.model_path + '/model.pt')
-            print("Model's state_dict:")
-            for param_tensor in self.actor_network.state_dict():
-                print(param_tensor, "\t", self.actor_network.state_dict()[param_tensor].size())
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):
