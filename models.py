@@ -71,9 +71,11 @@ class actor_image(nn.Module):
         self.action_out = nn.Linear(64, output_num)
 
         self.max_action = env_params['action_max']
+        self.depth = env_params['depth']
 
     def forward(self, x, image):
-        image = image.permute((0, 3, 1, 2)).float()
+        if not self.depth:
+            image = image.permute((0, 3, 1, 2)).float()
         # image = self.feature_extraction_model(image)
         # image = self.avgpool(image)
         # image = image.view(image.size(0), -1)
@@ -114,9 +116,11 @@ class critic_image(nn.Module):
         self.fc1 = nn.Linear(64*2, 64)
         self.fc2 = nn.Linear(64, 64)
         self.q_out = nn.Linear(64, 1)
+        self.depth = env_params['depth']
 
     def forward(self, x, image, actions):
-        image = image.permute((0, 3, 1, 2)).float()
+        if not self.depth:
+            image = image.permute((0, 3, 1, 2)).float()
         # image = self.feature_extraction_model(image)
         # image = self.avgpool(image)
         # image = image.view(image.size(0), -1)
