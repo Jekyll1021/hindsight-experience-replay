@@ -266,41 +266,6 @@ class actor_image_recurrent(nn.Module):
 
         return actions, hidden
 
-class critic_image(nn.Module):
-    def __init__(self, env_params, input_num):
-        super(critic_image, self).__init__()
-        self.max_action = env_params['action_max']
-        self.hidden_size = 64
-        self.input_num = input_num
-
-        self.feature_extraction_model = models.vgg16(pretrained=True)
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
-        self.image_fc1 = nn.Linear(512 * 7 * 7, 4096)
-        self.image_fc2 = nn.Linear(4096, 4096)
-        self.image_fc3 = nn.Linear(4096, 64)
-
-        self.fc1 = nn.Linear(self.input_num + 64, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 64)
-        self.q_out = nn.Linear(64, 1)
-
-    def forward(self, x, image, actions):
-        image = image.permute((0, 3, 1, 2)).float()
-        img = self.feature_extraction_model.features(image)
-        img = self.avgpool(img)
-        img = img.view(img.size(0), -1)
-        img = F.relu(self.image_fc1(img))
-        img = F.relu(self.image_fc2(img))
-        img = self.image_fc3(img)
-
-        x = torch.cat([x, img, actions / self.max_action], dim=1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        q_value = self.q_out(x)
-
-        return q_value
-
 class open_loop_image_predictor(nn.Module):
     def __init__(self, input_num, output_num=1, hidden=512):
         super(open_loop_image_predictor, self).__init__()
