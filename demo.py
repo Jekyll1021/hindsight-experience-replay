@@ -58,7 +58,7 @@ if __name__ == '__main__':
         for t in range(env._max_episode_steps):
             demo_img = env.render('rgb_array')
             # inputs = process_inputs(obs, g, o_mean, o_std, g_mean, g_std, args)
-            cv2.imwrite(os.path.join(path_ind, str(t)+".png"), demo_img)
+            cv2.imwrite(os.path.join(path_ind, str(t)+".png"), img*255)
             inputs = process_inputs(obs, o_mean, o_std, args)
             with torch.no_grad():
                 if use_image:
