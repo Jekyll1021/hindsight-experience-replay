@@ -139,6 +139,7 @@ class critic_image(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         q_value = F.sigmoid(self.q_out(x))
+        print(q_value, self.q_out(x))
 
         return q_value
 
