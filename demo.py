@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     o_mean, o_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     # create the environment
-    env = gym.make(args.env_name)
+    env = gym.make(args.env_name, reward_type='sparse', goal_type='fixed', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
     # get the env param
     observation = env.reset()
     # get the environment params
@@ -38,6 +38,7 @@ if __name__ == '__main__':
                   'goal': observation['desired_goal'].shape[0],
                   'action': env.action_space.shape[0],
                   'action_max': env.action_space.high[0],
+                  'depth': env.env.depth
                   }
     # create the actor network
     if use_image:
