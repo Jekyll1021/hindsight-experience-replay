@@ -257,6 +257,7 @@ class ddpg_agent:
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
             actions_tensor = actions_tensor.cuda()
             r_tensor = r_tensor.cuda()
+            counter = counter.cuda()
             if self.image:
                 img_tensor = img_tensor.cuda()
                 img_next_tensor = img_next_tensor.cuda()
