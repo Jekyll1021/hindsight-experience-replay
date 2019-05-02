@@ -274,7 +274,6 @@ class ddpg_agent:
 
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value * counter
-            print(r_tensor, q_next_value, target_q_value)
             target_q_value = target_q_value.detach()
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
