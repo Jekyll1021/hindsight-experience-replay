@@ -71,5 +71,5 @@ if __name__ == '__main__':
             observation_new, reward, _, info = env.step(action)
             obs = observation_new['observation']
             img = observation_new['image']
-        cv2.imwrite(os.path.join(path_ind, str(t)+".png"), img * 255)
+        cv2.imwrite(os.path.join(path_ind, str(t+1)+".png"), img * 255)
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
