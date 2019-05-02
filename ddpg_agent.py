@@ -167,9 +167,10 @@ class ddpg_agent:
             print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
                 datetime.now(), epoch, actor_loss, critic_loss, success_rate))
 
-            torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict(), self.critic_network.state_dict()], \
-                        self.model_path + '/model.pt')
-            print("file saved at: {}".format(self.model_path + '/model.pt'))
+            torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
+                        self.model_path + '/actor.pt')
+            torch.save([self.o_norm.mean, self.o_norm.std, self.critic_network.state_dict()], \
+                        self.model_path + '/critic.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):
