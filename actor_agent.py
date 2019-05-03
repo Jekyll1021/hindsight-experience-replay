@@ -13,8 +13,8 @@ ddpg with HER (MPI-version)
 
 """
 
-def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor):
-    step_tensor = input_tensor[:, -1]
+def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gamma):
+    counter = 1-input_tensor[:, -1:]
     gripper_state_tensor = input_tensor[:, :3]
     pose_control_tensor = action_tensor[:, :3]
 
@@ -40,7 +40,8 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor):
             _below_y_upper & _beyond_y_lower & \
             _below_z_upper & _beyond_z_lower & \
             _magnitude_in_range
-    print(next_q.shape)
+    print(offset_tensor, gripper_state_tensor, pose_control_tensor, box_pose_tensor, reward_tensor)
+    return reward_tensor + counter * next_q * gamma
 
 class actor_agent:
     def __init__(self, args, env, env_params, image=True):
@@ -262,8 +263,6 @@ class actor_agent:
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
         input_tensor = torch.tensor(o, dtype=torch.float32)
-        mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
-        counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
         # start to do the update
@@ -286,7 +285,6 @@ class actor_agent:
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
             actions_tensor = actions_tensor.cuda()
             r_tensor = r_tensor.cuda()
-            counter = counter.cuda()
             box_tensor = box_tensor.cuda()
             input_tensor = input_tensor.cuda()
             if self.image:
@@ -295,11 +293,9 @@ class actor_agent:
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
-            q_estimator(input_tensor, actions_real, r_tensor, box_tensor)
-            actor_loss = -self.critic_network(inputs_norm_tensor, img_tensor, actions_real).mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
-            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
+        actor_loss = -q_estimator(input_tensor, actions_real, r_tensor, box_tensor, self.args.gamma).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         actor_loss_value = actor_loss.item()
         # start to update the network
