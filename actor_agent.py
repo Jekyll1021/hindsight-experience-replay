@@ -2,7 +2,7 @@ import torch
 import os
 from datetime import datetime
 import numpy as np
-from models import actor, critic, actor_image, critic_image
+from models import actor, actor_image
 # from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
@@ -12,7 +12,37 @@ from her import her_sampler
 ddpg with HER (MPI-version)
 
 """
-class ddpg_agent:
+
+def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor):
+    step_tensor = input_tensor[:, -1]
+    gripper_state_tensor = input_tensor[:, :3]
+    pose_control_tensor = action_tensor[:, :3]
+
+    # next q = 1 if satisfied all conditions: x, y, z bound and norm magnitude bound.
+    next_pose_tensor = gripper_state_tensor + 0.05 * pose_control_tensor
+    offset_tensor = box_pose_tensor - next_pose_tensor
+    # check upper-lower bound for each of x, y, z
+    x_offset = offset_tensor[:, 0]
+    _below_x_upper = (x_offset <= 0.04)
+    _beyond_x_lower = (x_offset >= -0.04)
+    y_offset = offset_tensor[:, 1]
+    _below_y_upper = (y_offset <= 0.045)
+    _beyond_y_lower = (y_offset >= -0.045)
+    z_offset = offset_tensor[:, 2]
+    _below_z_upper = (z_offset <= 0.)
+    _beyond_z_lower = (z_offset >= -0.06)
+
+    # check norm magnitude with in range:
+    norm = torch.norm(offset_tensor, dim=-1)
+    _magnitude_in_range = (norm <= 0.075)
+
+    next_q = _below_x_upper & _beyond_x_lower & \
+            _below_y_upper & _beyond_y_lower & \
+            _below_z_upper & _beyond_z_lower & \
+            _magnitude_in_range
+    print(next_q.shape)
+
+class actor_agent:
     def __init__(self, args, env, env_params, image=True):
         self.args = args
         self.env = env
@@ -22,10 +52,8 @@ class ddpg_agent:
         # create the network
         if self.image:
             self.actor_network = actor_image(env_params, env_params['obs'])
-            self.critic_network = critic_image(env_params, env_params['obs'] + env_params['action'])
         else:
             self.actor_network = actor(env_params, env_params['obs'])
-            self.critic_network = critic(env_params, env_params['obs'] + env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -44,23 +72,17 @@ class ddpg_agent:
         # build up the target network
         if self.image:
             self.actor_target_network = actor_image(env_params, env_params['obs'])
-            self.critic_target_network = critic_image(env_params, env_params['obs'] + env_params['action'])
         else:
             self.actor_target_network = actor(env_params, env_params['obs'])
-            self.critic_target_network = critic(env_params, env_params['obs'] + env_params['action'])
         # load the weights into the target networks
         self.actor_target_network.load_state_dict(self.actor_network.state_dict())
-        self.critic_target_network.load_state_dict(self.critic_network.state_dict())
 
         # if use gpu
         if self.args.cuda:
             self.actor_network.cuda()
-            self.critic_network.cuda()
             self.actor_target_network.cuda()
-            self.critic_target_network.cuda()
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
-        self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
         # her sampler
         self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env().compute_reward)
         # create the replay buffer
@@ -158,19 +180,16 @@ class ddpg_agent:
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
 
                 # train the network
-                actor_loss, critic_loss = self._update_network()
+                actor_loss = self._update_network()
                 # soft update
                 self._soft_update_target_network(self.actor_target_network, self.actor_network)
-                self._soft_update_target_network(self.critic_target_network, self.critic_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
-            print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
-                datetime.now(), epoch, actor_loss, critic_loss, success_rate))
+            print('[{}] epoch is: {}, actor loss is: {:.5f}, eval success rate is: {:.3f}'.format(
+                datetime.now(), epoch, actor_loss, success_rate))
 
             torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                         self.model_path + '/actor.pt')
-            torch.save([self.o_norm.mean, self.o_norm.std, self.critic_network.state_dict()], \
-                        self.model_path + '/critic.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):
@@ -192,7 +211,7 @@ class ddpg_agent:
         # random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
         #                                     size=self.env_params['action'])
         offset = (observation["achieved_goal"] - observation["gripper_pose"])
-        if observation['observation'][-1] == 0:
+        if observation['observation'][-1] < 1:
             offset /= np.random.uniform(0.03, 0.05)
             offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
         else:
@@ -242,6 +261,7 @@ class ddpg_agent:
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
+        input_tensor = torch.tensor(o, dtype=torch.float32)
         mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
         counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         transitions['obs'] = self._preproc_og(o)
@@ -257,6 +277,7 @@ class ddpg_agent:
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
+        box_tensor = torch.tensor(transitions['ag'], dtype=torch.float32)
         if self.image:
             img_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
             img_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
@@ -266,37 +287,15 @@ class ddpg_agent:
             actions_tensor = actions_tensor.cuda()
             r_tensor = r_tensor.cuda()
             counter = counter.cuda()
+            box_tensor = box_tensor.cuda()
+            input_tensor = input_tensor.cuda()
             if self.image:
                 img_tensor = img_tensor.cuda()
                 img_next_tensor = img_next_tensor.cuda()
-        # calculate the target Q value function
-        with torch.no_grad():
-            # do the normalization
-            # concatenate the stuffs
-            if self.image:
-                actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
-                q_next_value = self.critic_target_network(inputs_next_norm_tensor, img_next_tensor, actions_next)
-            else:
-                actions_next = self.actor_target_network(inputs_next_norm_tensor)
-                q_next_value = self.critic_target_network(inputs_next_norm_tensor, actions_next)
-
-            q_next_value = q_next_value.detach()
-            target_q_value = r_tensor + self.args.gamma * q_next_value * counter
-            target_q_value = target_q_value.detach()
-            # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
-            # clip the q value
-            clip_return = 1 / (1 - self.args.gamma)
-            target_q_value = torch.clamp(target_q_value, -clip_return, 0)
-        # the q loss
-        if self.image:
-            real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
-        else:
-            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
-        critic_loss = (target_q_value - real_q_value).pow(2).mean()
-        critic_loss_value = critic_loss.item()
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
+            q_estimator(input_tensor, actions_real, r_tensor, box_tensor)
             actor_loss = -self.critic_network(inputs_norm_tensor, img_tensor, actions_real).mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
@@ -308,13 +307,8 @@ class ddpg_agent:
         actor_loss.backward()
         # sync_grads(self.actor_network)
         self.actor_optim.step()
-        # update the critic_network
-        self.critic_optim.zero_grad()
-        critic_loss.backward()
-        # sync_grads(self.critic_network)
-        self.critic_optim.step()
 
-        return actor_loss_value, critic_loss_value
+        return actor_loss_value
 
     # do the evaluation
     def _eval_agent(self):
