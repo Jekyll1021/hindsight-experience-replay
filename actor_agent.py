@@ -40,7 +40,6 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gam
             _below_y_upper & _beyond_y_lower & \
             _below_z_upper & _beyond_z_lower & \
             _magnitude_in_range, 1).float()
-    print(reward_tensor.shape, counter.shape, next_q.shape, (counter * next_q).shape)
     return reward_tensor + counter * next_q * gamma
 
 class actor_agent:
@@ -71,17 +70,10 @@ class actor_agent:
         # sync_networks(self.actor_network)
         # sync_networks(self.critic_network)
         # build up the target network
-        if self.image:
-            self.actor_target_network = actor_image(env_params, env_params['obs'])
-        else:
-            self.actor_target_network = actor(env_params, env_params['obs'])
-        # load the weights into the target networks
-        self.actor_target_network.load_state_dict(self.actor_network.state_dict())
 
         # if use gpu
         if self.args.cuda:
             self.actor_network.cuda()
-            self.actor_target_network.cuda()
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         # her sampler
