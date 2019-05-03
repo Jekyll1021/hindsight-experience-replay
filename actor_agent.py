@@ -40,7 +40,7 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gam
             _below_y_upper & _beyond_y_lower & \
             _below_z_upper & _beyond_z_lower & \
             _magnitude_in_range).float()
-    print(input_tensor[:, -1:], next_q)
+    print(input_tensor[:, -1:], offset_tensor, _magnitude_in_range, next_q)
     return reward_tensor + counter * next_q * gamma
 
 class actor_agent:
