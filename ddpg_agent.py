@@ -193,7 +193,7 @@ class ddpg_agent:
         #                                     size=self.env_params['action'])
         offset = (observation["achieved_goal"] - observation["gripper_pose"])
         if observation['observation'][-1] == 0:
-            offset /= np.uniform(0.03, 0.05)
+            offset /= np.random.uniform(0.03, 0.05)
             offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
         else:
             offset /= 0.05
