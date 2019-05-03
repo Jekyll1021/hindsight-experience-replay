@@ -26,9 +26,11 @@ if __name__ == '__main__':
     args = get_args()
     use_image = True
     # load the model param
-    model_path = args.save_dir + args.env_name + '/model.pt'
+    actor_path = args.save_dir + args.env_name + '/actor.pt'
+    critic_path = args.save_dir + args.env_name + '/critic.pt'
     # o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
-    o_mean, o_std, actor_model, critic_model = torch.load(model_path, map_location=lambda storage, loc: storage)
+    o_mean, o_std, actor_model = torch.load(actor_path, map_location=lambda storage, loc: storage)
+    o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
     # create the environment
     env = gym.make(args.env_name, reward_type='sparse', goal_type='fixed', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
     # get the env param
