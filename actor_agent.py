@@ -40,7 +40,7 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gam
             _below_y_upper & _beyond_y_lower & \
             _below_z_upper & _beyond_z_lower & \
             _magnitude_in_range).float()
-    print(input_tensor[:, -1:], offset_tensor, _magnitude_in_range, next_q)
+    print(reward_tensor.shape, counter.shape, next_q.shape, (counter * next_q).shape)
     return reward_tensor + counter * next_q * gamma
 
 class actor_agent:
@@ -296,7 +296,6 @@ class actor_agent:
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
         critic_q = q_estimator(input_tensor, actions_real, r_tensor, box_tensor, self.args.gamma)
-        print(critic_q)
         actor_loss = -critic_q.mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         actor_loss_value = actor_loss.item()
