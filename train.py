@@ -5,6 +5,7 @@ from arguments import get_args
 # from mpi4py import MPI
 # from subprocess import CalledProcessError
 from ddpg_agent import ddpg_agent
+from actor_agent import actor_agent
 from open_loop_agent import open_loop_agent
 
 """
@@ -29,7 +30,7 @@ def launch(args):
     # get the environment parameters
     env_params = get_env_params(env())
     # create the ddpg agent to interact with the environment
-    ddpg_trainer = ddpg_agent(args, env, env_params, image=True)
+    ddpg_trainer = actor_agent(args, env, env_params, image=True)
     ddpg_trainer.learn()
 
 if __name__ == '__main__':
