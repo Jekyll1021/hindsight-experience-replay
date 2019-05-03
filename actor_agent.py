@@ -174,8 +174,6 @@ class actor_agent:
 
                 # train the network
                 actor_loss = self._update_network()
-                # soft update
-                self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
             print('[{}] epoch is: {}, actor loss is: {:.5f}, eval success rate is: {:.3f}'.format(
