@@ -30,11 +30,11 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gam
     _beyond_y_lower = (y_offset >= -0.045)
     z_offset = offset_tensor[:, 2]
     _below_z_upper = (z_offset <= 0.)
-    _beyond_z_lower = (z_offset >= -0.06)
+    _beyond_z_lower = (z_offset >= -0.086)
 
     # check norm magnitude with in range:
     norm = torch.norm(offset_tensor, dim=-1)
-    _magnitude_in_range = (norm <= 0.075)
+    _magnitude_in_range = (norm <= 0.087)
 
     next_q = (_below_x_upper & _beyond_x_lower & \
             _below_y_upper & _beyond_y_lower & \
