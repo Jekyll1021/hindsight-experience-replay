@@ -237,6 +237,7 @@ class ddpg_agent:
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
+        mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
         counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
@@ -277,6 +278,7 @@ class ddpg_agent:
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value * counter
             target_q_value = target_q_value.detach()
+            print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
