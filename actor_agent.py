@@ -36,10 +36,10 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gam
     norm = torch.norm(offset_tensor, dim=-1)
     _magnitude_in_range = (norm <= 0.075)
 
-    next_q = _below_x_upper & _beyond_x_lower & \
+    next_q = (_below_x_upper & _beyond_x_lower & \
             _below_y_upper & _beyond_y_lower & \
             _below_z_upper & _beyond_z_lower & \
-            _magnitude_in_range
+            _magnitude_in_range).float()
     print(offset_tensor, gripper_state_tensor, pose_control_tensor, box_pose_tensor, reward_tensor)
     return reward_tensor + counter * next_q * gamma
 
