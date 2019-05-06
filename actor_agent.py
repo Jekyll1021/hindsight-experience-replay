@@ -312,6 +312,7 @@ class actor_agent:
             q_next_value = next_q_estimator(inputs_next_norm_tensor, box_next_tensor)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value * counter
+            print(r_tensor, q_next_value, counter)
             target_q_value = target_q_value.detach()
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
