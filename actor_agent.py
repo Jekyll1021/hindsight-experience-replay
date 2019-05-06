@@ -13,28 +13,26 @@ ddpg with HER (MPI-version)
 
 """
 
-def next_q_estimator(input_tensor, action_tensor, box_pose_tensor):
+def next_q_estimator(input_tensor, box_pose_tensor):
     # counter = 1-input_tensor[:, -1:]
     gripper_state_tensor = input_tensor[:, :3]
-    pose_control_tensor = action_tensor[:, :3]
 
     # next q = 1 if satisfied all conditions: x, y, z bound and norm magnitude bound.
-    next_pose_tensor = gripper_state_tensor + 0.05 * pose_control_tensor
-    offset_tensor = box_pose_tensor - next_pose_tensor
+    offset_tensor = box_pose_tensor - gripper_state_tensor
     # check upper-lower bound for each of x, y, z
     x_offset = offset_tensor[:, 0]
-    _below_x_upper = (x_offset <= 0.0035)
-    _beyond_x_lower = (x_offset >= -0.0035)
+    _below_x_upper = (x_offset <= 0.04)
+    _beyond_x_lower = (x_offset >= -0.04)
     y_offset = offset_tensor[:, 1]
-    _below_y_upper = (y_offset <= 0.0035)
-    _beyond_y_lower = (y_offset >= -0.0035)
+    _below_y_upper = (y_offset <= 0.045)
+    _beyond_y_lower = (y_offset >= -0.045)
     z_offset = offset_tensor[:, 2]
-    _below_z_upper = (z_offset <= 0.006)
-    _beyond_z_lower = (z_offset >= -0.0045)
+    _below_z_upper = (z_offset <= 0.)
+    _beyond_z_lower = (z_offset >= -0.086)
 
     # check norm magnitude with in range:
     norm = torch.norm(offset_tensor, dim=-1)
-    _magnitude_in_range = (norm <= 0.0075)
+    _magnitude_in_range = (norm <= 0.087)
 
     next_q = torch.unsqueeze(_below_x_upper & _beyond_x_lower & \
             _below_y_upper & _beyond_y_lower & \
@@ -72,17 +70,17 @@ class actor_agent:
         # sync_networks(self.actor_network)
         # sync_networks(self.critic_network)
         # build up the target network
-        if self.image:
-            self.actor_target_network = actor_image(env_params, env_params['obs'])
-        else:
-            self.actor_target_network = actor(env_params, env_params['obs'])
-        # load the weights into the target networks
-        self.actor_target_network.load_state_dict(self.actor_network.state_dict())
+        # if self.image:
+        #     self.actor_target_network = actor_image(env_params, env_params['obs'])
+        # else:
+        #     self.actor_target_network = actor(env_params, env_params['obs'])
+        # # load the weights into the target networks
+        # self.actor_target_network.load_state_dict(self.actor_network.state_dict())
 
         # if use gpu
         if self.args.cuda:
             self.actor_network.cuda()
-            self.actor_target_network.cuda()
+            # self.actor_target_network.cuda()
             self.critic_network.cuda()
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
@@ -186,7 +184,7 @@ class actor_agent:
                 # train the network
                 actor_loss, critic_loss = self._update_network()
                 # soft update
-                self._soft_update_target_network(self.actor_target_network, self.actor_network)
+                # self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
             print('[{}] epoch is: {}, actor loss is: {:.5f}, eval success rate is: {:.3f}'.format(
@@ -304,11 +302,11 @@ class actor_agent:
         with torch.no_grad():
             # do the normalization
             # concatenate the stuffs
-            if self.image:
-                actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
-            else:
-                actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = next_q_estimator(inputs_next_norm_tensor, actions_next, box_next_tensor)
+            # if self.image:
+            #     actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
+            # else:
+            #     actions_next = self.actor_target_network(inputs_next_norm_tensor)
+            q_next_value = next_q_estimator(inputs_next_norm_tensor, box_next_tensor)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value * counter
             target_q_value = target_q_value.detach()
