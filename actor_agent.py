@@ -2,7 +2,7 @@ import torch
 import os
 from datetime import datetime
 import numpy as np
-from models import actor, actor_image
+from models import actor, actor_image, critic, critic_image
 # from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
 from normalizer import normalizer
@@ -13,8 +13,8 @@ ddpg with HER (MPI-version)
 
 """
 
-def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gamma):
-    counter = 1-input_tensor[:, -1:]
+def next_q_estimator(input_tensor, action_tensor, box_pose_tensor, gamma):
+    # counter = 1-input_tensor[:, -1:]
     gripper_state_tensor = input_tensor[:, :3]
     pose_control_tensor = action_tensor[:, :3]
 
@@ -23,24 +23,24 @@ def q_estimator(input_tensor, action_tensor, reward_tensor, box_pose_tensor, gam
     offset_tensor = box_pose_tensor - next_pose_tensor
     # check upper-lower bound for each of x, y, z
     x_offset = offset_tensor[:, 0]
-    _below_x_upper = (x_offset <= 0.04)
-    _beyond_x_lower = (x_offset >= -0.04)
+    _below_x_upper = (x_offset <= 0.0035)
+    _beyond_x_lower = (x_offset >= -0.0035)
     y_offset = offset_tensor[:, 1]
-    _below_y_upper = (y_offset <= 0.045)
-    _beyond_y_lower = (y_offset >= -0.045)
+    _below_y_upper = (y_offset <= 0.0035)
+    _beyond_y_lower = (y_offset >= -0.0035)
     z_offset = offset_tensor[:, 2]
-    _below_z_upper = (z_offset <= 0.)
-    _beyond_z_lower = (z_offset >= -0.086)
+    _below_z_upper = (z_offset <= 0.006)
+    _beyond_z_lower = (z_offset >= -0.0045)
 
     # check norm magnitude with in range:
     norm = torch.norm(offset_tensor, dim=-1)
-    _magnitude_in_range = (norm <= 0.087)
+    _magnitude_in_range = (norm <= 0.0075)
 
     next_q = torch.unsqueeze(_below_x_upper & _beyond_x_lower & \
             _below_y_upper & _beyond_y_lower & \
             _below_z_upper & _beyond_z_lower & \
             _magnitude_in_range, 1).float()
-    return reward_tensor + counter * next_q * gamma
+    return next_q
 
 class actor_agent:
     def __init__(self, args, env, env_params, image=True):
@@ -52,8 +52,10 @@ class actor_agent:
         # create the network
         if self.image:
             self.actor_network = actor_image(env_params, env_params['obs'])
+            self.critic_network = critic_image(env_params, env_params['obs'] + env_params['action'])
         else:
             self.actor_network = actor(env_params, env_params['obs'])
+            self.critic_network = critic(env_params, env_params['obs'] + env_params['action'])
 
         # create the normalizer
         self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
@@ -70,12 +72,20 @@ class actor_agent:
         # sync_networks(self.actor_network)
         # sync_networks(self.critic_network)
         # build up the target network
+        if self.image:
+            self.actor_target_network = actor_image(env_params, env_params['obs'])
+        else:
+            self.actor_target_network = actor(env_params, env_params['obs'])
+        # load the weights into the target networks
+        self.actor_target_network.load_state_dict(self.actor_network.state_dict())
 
         # if use gpu
         if self.args.cuda:
             self.actor_network.cuda()
+            self.actor_target_network.cuda()
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
+        self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
         # her sampler
         self.her_module = her_sampler(self.args.replay_strategy, self.args.replay_k, self.env().compute_reward)
         # create the replay buffer
@@ -173,7 +183,9 @@ class actor_agent:
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
 
                 # train the network
-                actor_loss = self._update_network()
+                actor_loss, critic_loss = self._update_network()
+                # soft update
+                self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
             print('[{}] epoch is: {}, actor loss is: {:.5f}, eval success rate is: {:.3f}'.format(
@@ -253,6 +265,8 @@ class actor_agent:
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
         input_tensor = torch.tensor(o, dtype=torch.float32)
+        counter = 1-input_tensor[:, -1:]
+        input_next_tensor = torch.tensor(o_next, dtype=torch.float32)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
         # start to do the update
@@ -267,6 +281,7 @@ class actor_agent:
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
         box_tensor = torch.tensor(transitions['ag'], dtype=torch.float32)
+        box_next_tensor = torch.tensor(transitions['ag_next'], dtype=torch.float32)
         if self.image:
             img_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
             img_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
@@ -276,17 +291,47 @@ class actor_agent:
             actions_tensor = actions_tensor.cuda()
             r_tensor = r_tensor.cuda()
             box_tensor = box_tensor.cuda()
+            box_next_tensor = box_next_tensor.cuda()
             input_tensor = input_tensor.cuda()
+            input_next_tensor = input_next_tensor.cuda()
             if self.image:
                 img_tensor = img_tensor.cuda()
                 img_next_tensor = img_next_tensor.cuda()
+
+        # calculate the target Q value function
+        with torch.no_grad():
+            # do the normalization
+            # concatenate the stuffs
+            if self.image:
+                actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
+            else:
+                actions_next = self.actor_target_network(inputs_next_norm_tensor)
+            q_next_value = next_q_estimator(inputs_next_norm_tensor, actions_next, box_next_tensor)
+            q_next_value = q_next_value.detach()
+            target_q_value = r_tensor + self.args.gamma * q_next_value * counter
+            target_q_value = target_q_value.detach()
+            # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
+            # clip the q value
+            clip_return = 1 / (1 - self.args.gamma)
+            target_q_value = torch.clamp(target_q_value, -clip_return, 0)
+        # the q loss
+        if self.image:
+            real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
+        else:
+            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
+        critic_loss = (target_q_value - real_q_value).pow(2).mean()
+        critic_loss_value = critic_loss.item()
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        # sync_grads(self.critic_network)
+        self.critic_optim.step()
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
+            actor_loss = -self.critic_network(inputs_norm_tensor, img_tensor, actions_real).mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
-        critic_q = q_estimator(input_tensor, actions_real, r_tensor, box_tensor, self.args.gamma)
-        actor_loss = -critic_q.mean()
+            actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
         actor_loss_value = actor_loss.item()
         # start to update the network
@@ -295,7 +340,7 @@ class actor_agent:
         # sync_grads(self.actor_network)
         self.actor_optim.step()
 
-        return actor_loss_value
+        return actor_loss_value, critic_loss_value
 
     # do the evaluation
     def _eval_agent(self):
