@@ -73,8 +73,8 @@ if __name__ == '__main__':
                     pi = actor_network(inputs)
                     # q_value = critic_network(inputs, pi)
             action = pi.detach().numpy().squeeze()
-            value = q_value.detach().item()
-            print("rollout: {}, step: {}, q_value: {}".format(i, t, value))
+            # value = q_value.detach().item()
+            # print("rollout: {}, step: {}, q_value: {}".format(i, t, value))
             # put actions into the environment
             observation_new, reward, _, info = env.step(action)
             obs = observation_new['observation']
