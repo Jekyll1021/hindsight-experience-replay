@@ -100,6 +100,7 @@ class actor_agent:
         """
         # start to collect samples
         for epoch in range(self.args.n_epochs):
+            actor_loss_lst, critic_loss_lst = [], []
             for _ in range(self.args.n_cycles):
                 if self.image:
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
@@ -183,12 +184,14 @@ class actor_agent:
 
                 # train the network
                 actor_loss, critic_loss = self._update_network()
+                actor_loss_lst.append(actor_loss)
+                critic_loss_lst.append(critic_loss)
                 # soft update
                 # self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
             success_rate = self._eval_agent()
-            print('[{}] epoch is: {}, actor loss is: {:.5f}, eval success rate is: {:.3f}'.format(
-                datetime.now(), epoch, actor_loss, success_rate))
+            print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
+                datetime.now(), epoch, np.mean(actor_loss_lst), np.mean(critic_loss_lst), success_rate))
 
             torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                         self.model_path + '/actor.pt')
