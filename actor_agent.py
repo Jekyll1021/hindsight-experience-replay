@@ -321,7 +321,7 @@ class actor_agent:
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
-            target_q_value = torch.clamp(target_q_value, -clip_return, 0)
+            target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
         # the q loss
         if self.image:
             real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
