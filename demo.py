@@ -70,7 +70,7 @@ if __name__ == '__main__':
                 if use_image:
                     image_tensor = torch.tensor([img], dtype=torch.float32)
                     pi = actor_network(inputs, image_tensor)
-                    print("offset: {}, actions: {}".format(obs["achieved_goal"] - obs["gripper_pose"], pi[:3]))
+                    print("offset: {}, actions: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist())
                     # q_value = critic_network(inputs, image_tensor, pi)
                 else:
                     pi = actor_network(inputs)
