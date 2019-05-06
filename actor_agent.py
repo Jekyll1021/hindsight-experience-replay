@@ -83,6 +83,7 @@ class actor_agent:
         if self.args.cuda:
             self.actor_network.cuda()
             self.actor_target_network.cuda()
+            self.critic_network.cuda()
         # create the optimizer
         self.actor_optim = torch.optim.Adam(self.actor_network.parameters(), lr=self.args.lr_actor)
         self.critic_optim = torch.optim.Adam(self.critic_network.parameters(), lr=self.args.lr_critic)
