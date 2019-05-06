@@ -19,7 +19,7 @@ def next_q_estimator(input_tensor, box_pose_tensor):
 
     # next q = 1 if satisfied all conditions: x, y, z bound and norm magnitude bound.
     offset_tensor = box_pose_tensor - gripper_state_tensor
-    print(offset_tensor, box_pose_tensor, gripper_state_tensor)
+    # print(offset_tensor, box_pose_tensor, gripper_state_tensor)
     # check upper-lower bound for each of x, y, z
     x_offset = offset_tensor[:, 0]
     _below_x_upper = (x_offset <= 0.04)
@@ -313,7 +313,7 @@ class actor_agent:
             q_next_value = next_q_estimator(input_next_tensor, box_next_tensor)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value * counter
-            print(r_tensor, q_next_value, counter)
+            # print(r_tensor, q_next_value, counter)
             target_q_value = target_q_value.detach()
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
