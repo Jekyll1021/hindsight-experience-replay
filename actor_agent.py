@@ -13,7 +13,7 @@ ddpg with HER (MPI-version)
 
 """
 
-def next_q_estimator(input_tensor, action_tensor, box_pose_tensor, gamma):
+def next_q_estimator(input_tensor, action_tensor, box_pose_tensor):
     # counter = 1-input_tensor[:, -1:]
     gripper_state_tensor = input_tensor[:, :3]
     pose_control_tensor = action_tensor[:, :3]
