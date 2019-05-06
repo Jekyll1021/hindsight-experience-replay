@@ -19,6 +19,7 @@ def next_q_estimator(input_tensor, box_pose_tensor):
 
     # next q = 1 if satisfied all conditions: x, y, z bound and norm magnitude bound.
     offset_tensor = box_pose_tensor - gripper_state_tensor
+    print(offset_tensor, box_pose_tensor, gripper_state_tensor)
     # check upper-lower bound for each of x, y, z
     x_offset = offset_tensor[:, 0]
     _below_x_upper = (x_offset <= 0.04)
