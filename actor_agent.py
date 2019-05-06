@@ -294,6 +294,7 @@ class actor_agent:
             box_next_tensor = box_next_tensor.cuda()
             input_tensor = input_tensor.cuda()
             input_next_tensor = input_next_tensor.cuda()
+            counter = counter.cuda()
             if self.image:
                 img_tensor = img_tensor.cuda()
                 img_next_tensor = img_next_tensor.cuda()
