@@ -30,7 +30,7 @@ if __name__ == '__main__':
     critic_path = args.save_dir + args.env_name + '/critic.pt'
     # o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     o_mean, o_std, actor_model = torch.load(actor_path, map_location=lambda storage, loc: storage)
-    o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
+    # o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
     # create the environment
     env = gym.make(args.env_name, reward_type='sparse', goal_type='fixed', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
     # get the env param
@@ -68,10 +68,10 @@ if __name__ == '__main__':
                 if use_image:
                     image_tensor = torch.tensor([img], dtype=torch.float32)
                     pi = actor_network(inputs, image_tensor)
-                    q_value = critic_network(inputs, image_tensor, pi)
+                    # q_value = critic_network(inputs, image_tensor, pi)
                 else:
                     pi = actor_network(inputs)
-                    q_value = critic_network(inputs, pi)
+                    # q_value = critic_network(inputs, pi)
             action = pi.detach().numpy().squeeze()
             value = q_value.detach().item()
             print("rollout: {}, step: {}, q_value: {}".format(i, t, value))
