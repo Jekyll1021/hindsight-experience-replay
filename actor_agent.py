@@ -310,7 +310,7 @@ class actor_agent:
             #     actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
             # else:
             #     actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = next_q_estimator(inputs_next_tensor, box_next_tensor)
+            q_next_value = next_q_estimator(input_next_tensor, box_next_tensor)
             q_next_value = q_next_value.detach()
             target_q_value = r_tensor + self.args.gamma * q_next_value * counter
             print(r_tensor, q_next_value, counter)
