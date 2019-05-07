@@ -30,7 +30,7 @@ if __name__ == '__main__':
     critic_path = args.save_dir + args.env_name + '/critic.pt'
     # o_mean, o_std, g_mean, g_std, model = torch.load(model_path, map_location=lambda storage, loc: storage)
     o_mean, o_std, actor_model = torch.load(actor_path, map_location=lambda storage, loc: storage)
-    # o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
+    o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
     # create the environment
     env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
     # get the env param
@@ -51,6 +51,8 @@ if __name__ == '__main__':
         critic_network = critic_image(env_params, env_params['obs'] + env_params['action'])
     actor_network.load_state_dict(actor_model)
     actor_network.eval()
+    critic_network.load_state_dict(critic_model)
+    critic_network.eval()
     for i in range(args.demo_length):
         path_ind = os.path.join(path, str(i))
         os.makedirs(path_ind)
@@ -71,13 +73,13 @@ if __name__ == '__main__':
                     image_tensor = torch.tensor([img], dtype=torch.float32)
                     pi = actor_network(inputs, image_tensor)
                     print("offset: {}, actions: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist()))
-                    # q_value = critic_network(inputs, image_tensor, pi)
+                    q_value = critic_network(inputs, image_tensor, pi)
                 else:
                     pi = actor_network(inputs)
-                    # q_value = critic_network(inputs, pi)
+                    q_value = critic_network(inputs, pi)
             action = pi.detach().numpy().squeeze()
-            # value = q_value.detach().item()
-            # print("rollout: {}, step: {}, q_value: {}".format(i, t, value))
+            value = q_value.detach().item()
+            print("rollout: {}, step: {}, q_value: {}".format(i, t, value))
             # put actions into the environment
             observation, reward, _, info = env.step(action)
             obs = observation['observation']
