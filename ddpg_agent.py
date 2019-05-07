@@ -292,6 +292,11 @@ class ddpg_agent:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         critic_loss_value = critic_loss.item()
+        # update the critic_network
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        # sync_grads(self.critic_network)
+        self.critic_optim.step()
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
@@ -306,11 +311,6 @@ class ddpg_agent:
         actor_loss.backward()
         # sync_grads(self.actor_network)
         self.actor_optim.step()
-        # update the critic_network
-        self.critic_optim.zero_grad()
-        critic_loss.backward()
-        # sync_grads(self.critic_network)
-        self.critic_optim.step()
 
         return actor_loss_value, critic_loss_value
 
