@@ -65,7 +65,6 @@ class actor_image(nn.Module):
         num_ftrs = self.resnet.fc.in_features * 7 * 7
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs, 512)
-        self.resnet.layer1[0].conv1.register_backward_hook(print)
 
         self.input_process = nn.Linear(input_num, 512)
 
@@ -114,7 +113,6 @@ class critic_image(nn.Module):
         num_ftrs = self.resnet.fc.in_features * 7 * 7
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs, 512)
-        self.resnet.layer1[0].conv1.register_backward_hook(print)
 
         self.input_process = nn.Linear(input_num, 512)
 
