@@ -96,6 +96,7 @@ class actor_image(nn.Module):
         if self.two_cam:
             image2 = F.relu(self.resnet(image2))
             image = torch.cat([image, image2], dim=1)
+            image = F.relu(self.image_process(image))
 
         x = F.relu(self.input_process(x))
 
@@ -125,6 +126,9 @@ class critic_image(nn.Module):
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs, 512)
 
+        if self.two_cam:
+            self.image_process = nn.Linear(512*2, 512)
+
         self.input_process = nn.Linear(input_num, 512)
 
         self.fc1 = nn.Linear(512*2, 128)
@@ -147,6 +151,7 @@ class critic_image(nn.Module):
         if self.two_cam:
             image2 = F.relu(self.resnet(image2))
             image = torch.cat([image, image2], dim=1)
+            image = F.relu(self.image_process(image))
 
         x = torch.cat([x, actions / self.max_action], dim=1)
         x = F.relu(self.input_process(x))
