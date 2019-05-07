@@ -54,6 +54,8 @@ class actor_image(nn.Module):
     def __init__(self, env_params, input_num, output_num=4):
         super(actor_image, self).__init__()
         print("creating actor model with image input...")
+        self.two_cam = env_params['two_cam']
+
         # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
         # self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
         # self.image_fc1 = nn.Linear(256 * 6 * 6, 4096)
@@ -65,6 +67,9 @@ class actor_image(nn.Module):
         num_ftrs = self.resnet.fc.in_features * 7 * 7
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs, 512)
+
+        if self.two_cam:
+            self.image_process = nn.Linear(512*2, 512)
 
         self.input_process = nn.Linear(input_num, 512)
 
@@ -78,6 +83,8 @@ class actor_image(nn.Module):
     def forward(self, x, image):
         if not self.depth:
             image = image.permute((0, 3, 1, 2)).float()
+            if self.two_cam:
+                image, image2 = torch.split(image, 3, dim=1)
         # image = self.feature_extraction_model(image)
         # image = self.avgpool(image)
         # image = image.view(image.size(0), -1)
@@ -86,6 +93,9 @@ class actor_image(nn.Module):
         # image = self.image_fc3(image)
 
         image = F.relu(self.resnet(image))
+        if self.two_cam:
+            image2 = F.relu(self.resnet(image2))
+            image = torch.cat([image, image2], dim=1)
 
         x = F.relu(self.input_process(x))
 
@@ -102,6 +112,7 @@ class critic_image(nn.Module):
     def __init__(self, env_params, input_num):
         super(critic_image, self).__init__()
         self.max_action = env_params['action_max']
+        self.two_cam = env_params['two_cam']
         print("creating critic model with image input...")
         # self.feature_extraction_model = models.alexnet(pretrained=True).features.eval()
         # self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
@@ -124,6 +135,8 @@ class critic_image(nn.Module):
     def forward(self, x, image, actions):
         if not self.depth:
             image = image.permute((0, 3, 1, 2)).float()
+            if self.two_cam:
+                image, image2 = torch.split(image, 3, dim=1)
         # image = self.feature_extraction_model(image)
         # image = self.avgpool(image)
         # image = image.view(image.size(0), -1)
@@ -131,6 +144,9 @@ class critic_image(nn.Module):
         # image = F.relu(self.image_fc2(image))
         # image = self.image_fc3(image)
         image = F.relu(self.resnet(image))
+        if self.two_cam:
+            image2 = F.relu(self.resnet(image2))
+            image = torch.cat([image, image2], dim=1)
 
         x = torch.cat([x, actions / self.max_action], dim=1)
         x = F.relu(self.input_process(x))

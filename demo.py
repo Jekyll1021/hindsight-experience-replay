@@ -40,7 +40,8 @@ if __name__ == '__main__':
                   'goal': observation['desired_goal'].shape[0],
                   'action': env.action_space.shape[0],
                   'action_max': env.action_space.high[0],
-                  'depth': env.env.depth
+                  'depth': env.env.depth,
+                  'two_cam': env.env.two_cam
                   }
     # create the actor network
     if use_image:
