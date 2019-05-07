@@ -196,6 +196,8 @@ class actor_agent:
 
             torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                         self.model_path + '/actor.pt')
+            torch.save([self.o_norm.mean, self.o_norm.std, self.critic_network.state_dict()], \
+                        self.model_path + '/critic.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):
