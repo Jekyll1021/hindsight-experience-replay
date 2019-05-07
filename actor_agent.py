@@ -330,7 +330,6 @@ class actor_agent:
         else:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         # print(target_q_value, real_q_value, input_tensor[:, :3], actions_tensor[:, :3], box_tensor)
-        print(real_q_value)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         critic_loss_value = critic_loss.item()
         self.critic_optim.zero_grad()
