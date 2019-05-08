@@ -32,7 +32,7 @@ if __name__ == '__main__':
     o_mean, o_std, actor_model = torch.load(actor_path, map_location=lambda storage, loc: storage)
     o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
     # create the environment
-    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
+    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False, two_cam=True)
     # get the env param
     observation = env.reset()
     # get the environment params
