@@ -57,7 +57,7 @@ if __name__ == '__main__':
     for i in range(args.demo_length):
         path_ind = os.path.join(path, str(i))
         os.makedirs(path_ind)
-        env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False)
+        env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False, two_cam=True)
         # get the env param
         observation = env.reset()
         # start to do the demo
