@@ -64,10 +64,16 @@ if __name__ == '__main__':
         obs = observation['observation']
         g = observation['desired_goal']
         img = observation['image']
+        if env_params['two_cam']:
+            img1, img2 = np.array_split(img, 2, axis=-1)
         for t in range(env._max_episode_steps):
             demo_img = env.render('rgb_array')
             # inputs = process_inputs(obs, g, o_mean, o_std, g_mean, g_std, args)
-            cv2.imwrite(os.path.join(path_ind, str(t)+".png"), img*255)
+            if env_params['two_cam']:
+                cv2.imwrite(os.path.join(path_ind, str(t)+"_1.png"), img1*255)
+                cv2.imwrite(os.path.join(path_ind, str(t)+"_2.png"), img2*255)
+            else:
+                cv2.imwrite(os.path.join(path_ind, str(t)+".png"), img*255)
             inputs = process_inputs(obs, o_mean, o_std, args)
             with torch.no_grad():
                 if use_image:
@@ -85,5 +91,11 @@ if __name__ == '__main__':
             observation, reward, _, info = env.step(action)
             obs = observation['observation']
             img = observation['image']
-        cv2.imwrite(os.path.join(path_ind, str(t+1)+".png"), img * 255)
+            if env_params['two_cam']:
+                img1, img2 = np.array_split(img, 2, axis=-1)
+        if env_params['two_cam']:
+            cv2.imwrite(os.path.join(path_ind, str(t+1)+"_1.png"), img1 * 255)
+            cv2.imwrite(os.path.join(path_ind, str(t+1)+"_2.png"), img2 * 255)
+        else:
+            cv2.imwrite(os.path.join(path_ind, str(t+1)+".png"), img * 255)
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
