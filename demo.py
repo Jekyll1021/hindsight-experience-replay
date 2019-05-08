@@ -66,7 +66,6 @@ if __name__ == '__main__':
         img = observation['image']
         if env_params['two_cam']:
             img1, img2 = np.array_split(img, 2, axis=-1)
-            print(img1.shape, img2.shape)
         for t in range(env._max_episode_steps):
             demo_img = env.render('rgb_array')
             # inputs = process_inputs(obs, g, o_mean, o_std, g_mean, g_std, args)
