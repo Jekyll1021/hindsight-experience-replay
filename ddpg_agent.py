@@ -283,6 +283,7 @@ class ddpg_agent:
             target_q_value = target_q_value.detach()
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
+            print(target_q_value, r_tensor)
             print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
