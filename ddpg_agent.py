@@ -241,6 +241,7 @@ class ddpg_agent:
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
         counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
+        mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
         # start to do the update
@@ -248,7 +249,7 @@ class ddpg_agent:
         inputs_norm = obs_norm
         obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
         inputs_next_norm = obs_next_norm
-        # print("avg rewards {}".format(np.mean(transitions['r'])))
+        print("avg rewards {}".format(np.mean(transitions['r'])))
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
@@ -282,6 +283,7 @@ class ddpg_agent:
             target_q_value = target_q_value.detach()
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
+            print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, 0)
         # the q loss
