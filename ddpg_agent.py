@@ -240,7 +240,6 @@ class ddpg_agent:
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
-        mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
         counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
@@ -292,6 +291,12 @@ class ddpg_agent:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
         critic_loss_value = critic_loss.item()
+
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        # sync_grads(self.critic_network)
+        self.critic_optim.step()
+
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
