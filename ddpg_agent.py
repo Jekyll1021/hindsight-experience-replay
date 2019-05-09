@@ -294,6 +294,7 @@ class ddpg_agent:
 
         self.critic_optim.zero_grad()
         critic_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.critic_network.parameters(), 0.5)
         # sync_grads(self.critic_network)
         self.critic_optim.step()
 
@@ -309,9 +310,9 @@ class ddpg_agent:
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.actor_network.parameters(), 0.5)
         # sync_grads(self.actor_network)
         self.actor_optim.step()
-
 
         return actor_loss_value, critic_loss_value
 
