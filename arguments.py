@@ -26,7 +26,7 @@ def get_args():
     parser.add_argument('--clip-obs', type=float, default=200, help='the clip ratio')
     parser.add_argument('--batch-size', type=int, default=256, help='the sample batch size')
     parser.add_argument('--gamma', type=float, default=0.98, help='the discount factor')
-    parser.add_argument('--action-l2', type=float, default=1, help='l2 reg')
+    parser.add_argument('--action-l2', type=float, default=0.01, help='l2 reg')
     parser.add_argument('--lr-actor', type=float, default=0.0001, help='the learning rate of the actor')
     parser.add_argument('--lr-critic', type=float, default=1e-5, help='the learning rate of the critic')
     parser.add_argument('--polyak', type=float, default=0.01, help='the average coefficient')
