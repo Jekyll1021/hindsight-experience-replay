@@ -69,6 +69,8 @@ class ddpg_agent:
         # path to save the model
         self.model_path = os.path.join(self.args.save_dir, self.args.env_name)
 
+        self.sample_count = 0
+
     def learn(self):
         """
         train the network
@@ -239,6 +241,7 @@ class ddpg_agent:
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
+        self.sample_count += len(transitions)
         o, o_next = transitions['obs'], transitions['obs_next']
         counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
@@ -294,8 +297,6 @@ class ddpg_agent:
 
         self.critic_optim.zero_grad()
         critic_loss.backward()
-        for p in self.critic_network.parameters():
-            print(p.grad)
         torch.nn.utils.clip_grad_norm_(self.critic_network.parameters(), 0.5)
         # sync_grads(self.critic_network)
         self.critic_optim.step()
@@ -312,11 +313,11 @@ class ddpg_agent:
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
-        for p in self.actor_network.parameters():
-            print(p.grad)
         torch.nn.utils.clip_grad_norm_(self.actor_network.parameters(), 0.5)
         # sync_grads(self.actor_network)
         self.actor_optim.step()
+
+        print(self.sample_count)
 
         return actor_loss_value, critic_loss_value
 

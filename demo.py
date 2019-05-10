@@ -54,6 +54,8 @@ if __name__ == '__main__':
     actor_network.eval()
     critic_network.load_state_dict(critic_model)
     critic_network.eval()
+
+    total_success_rate = []
     for i in range(args.demo_length):
         path_ind = os.path.join(path, str(i))
         os.makedirs(path_ind)
@@ -99,3 +101,5 @@ if __name__ == '__main__':
         else:
             cv2.imwrite(os.path.join(path_ind, str(t+1)+".png"), img * 255)
         print('the episode is: {}, is success: {}'.format(i, info['is_success']))
+        total_success_rate.append(info['is_success'])
+    print('total success rate: {}'.format(np.sum(total_success_rate) / len(total_success_rate)))
