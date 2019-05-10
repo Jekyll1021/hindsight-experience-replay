@@ -166,6 +166,8 @@ class ddpg_agent:
             success_rate = self._eval_agent()
             print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f} eval success rate is: {:.3f}'.format(
                 datetime.now(), epoch, actor_loss, critic_loss, success_rate))
+            if self.args.cuda:
+                torch.cuda.empty_cache()
 
             torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
                         self.model_path + '/actor.pt')
