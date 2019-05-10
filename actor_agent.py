@@ -131,9 +131,9 @@ class actor_agent:
                         with torch.no_grad():
                             input_tensor = self._preproc_inputs(obs)
                             if self.image:
-                                pi = self.actor_network(input_tensor, image_tensor)
+                                pi = self.actor_network(input_tensor, image_tensor).detach()
                             else:
-                                pi = self.actor_network(input_tensor)
+                                pi = self.actor_network(input_tensor).detach()
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
                         observation_new, _, _, info = e.step(action)
