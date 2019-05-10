@@ -241,7 +241,7 @@ class ddpg_agent:
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
-        self.sample_count += len(transitions)
+        self.sample_count += len(transitions['obs'])
         o, o_next = transitions['obs'], transitions['obs_next']
         counter = torch.tensor(1-o[:, -1:], dtype=torch.float32)
         mask = torch.tensor(o[:, -1:], dtype=torch.uint8)
