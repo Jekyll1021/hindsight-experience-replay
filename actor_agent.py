@@ -334,11 +334,12 @@ class actor_agent:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
         # print(target_q_value, real_q_value, input_tensor[:, :3], actions_tensor[:, :3], box_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
-        critic_loss_value = critic_loss.item()
+
         self.critic_optim.zero_grad()
         critic_loss.backward()
         # sync_grads(self.critic_network)
         self.critic_optim.step()
+        critic_loss_value = critic_loss.detach().item()
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
@@ -347,12 +348,13 @@ class actor_agent:
             actions_real = self.actor_network(inputs_norm_tensor)
             actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
-        actor_loss_value = actor_loss.item()
+
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
         # sync_grads(self.actor_network)
         self.actor_optim.step()
+        actor_loss_value = actor_loss.detach().item()
 
         return actor_loss_value, critic_loss_value
 
