@@ -356,6 +356,9 @@ class actor_agent:
         self.actor_optim.step()
         actor_loss_value = actor_loss.detach().item()
 
+        if self.args.cuda:
+            torch.cuda.empty_cache()
+
         return actor_loss_value, critic_loss_value
 
     # do the evaluation
