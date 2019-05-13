@@ -8,6 +8,8 @@ from replay_buffer import replay_buffer
 from normalizer import normalizer
 from her import her_sampler
 
+import time
+
 """
 ddpg with HER (MPI-version)
 
@@ -100,7 +102,6 @@ class actor_agent:
 
         """
         # start to collect samples
-        e = self.env()
         for epoch in range(self.args.n_epochs):
             total_actor_loss, total_critic_loss, count = 0, 0, 0
             for _ in range(self.args.n_cycles):
@@ -109,13 +110,15 @@ class actor_agent:
                 else:
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
+                    # profiling
+                    start = time.time()
                     # reset the rollouts
                     if self.image:
                         ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image = [], [], [], [], [], [], []
                     else:
                         ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                     # reset the environment
-
+                    e = self.env()
                     observation = e.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
@@ -123,6 +126,11 @@ class actor_agent:
                     img = observation['image']
                     sg = np.zeros(4)
                     hidden = np.zeros(64)
+                    # profiling
+                    now = time.time()
+                    print("initializing env and variables: {}".format(now-start))
+                    start = now
+
                     if self.image:
                         image_tensor = torch.tensor(observation['image'], dtype=torch.float32).unsqueeze(0)
                         if self.args.cuda:
@@ -169,6 +177,12 @@ class actor_agent:
                     mb_hidden.append(ep_hidden)
                     if self.image:
                         mb_image.append(ep_image)
+
+                # profiling
+                now = time.time()
+                print("total execution time: {}".format(now-start))
+                start = now
+
                 # convert them into arrays
                 mb_obs = np.array(mb_obs)
                 mb_ag = np.array(mb_ag)
@@ -182,18 +196,33 @@ class actor_agent:
                 # store the episodes
                 else:
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
+                # profiling
+                now = time.time()
+                print("total store time: {}".format(now-start))
+                start = now
+
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
+
+                # profiling
+                now = time.time()
+                print("total normalizing time: {}".format(now-start))
+                start = now
 
                 # train the network
                 actor_loss, critic_loss = self._update_network()
                 total_actor_loss += actor_loss
                 total_critic_loss += critic_loss
                 count += 1
+
+                # profiling
+                now = time.time()
+                print("total training time: {}".format(now-start))
+                start = now
+
                 # soft update
                 # self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
-            # success_rate = self._eval_agent()
-            success_rate = 0
+            success_rate = self._eval_agent()
             print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
                 datetime.now(), epoch, total_actor_loss/count, total_critic_loss/count, success_rate))
 
