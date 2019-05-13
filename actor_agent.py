@@ -310,36 +310,37 @@ class actor_agent:
                 img_next_tensor = img_next_tensor.cuda()
 
         # calculate the target Q value function
-        with torch.no_grad():
-            # do the normalization
-            # concatenate the stuffs
-            # if self.image:
-            #     actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
-            # else:
-            #     actions_next = self.actor_target_network(inputs_next_norm_tensor)
-            q_next_value = next_q_estimator(input_next_tensor, box_next_tensor)
-            q_next_value = q_next_value.detach()
-            target_q_value = r_tensor + self.args.gamma * q_next_value * counter
-            # print("expected q value {}".format(target_q_value.mean().item()))
-            # print(r_tensor, q_next_value, counter)
-            target_q_value = target_q_value.detach()
-            # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
-            # clip the q value
-            clip_return = 1 / (1 - self.args.gamma)
-            target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
-        # the q loss
-        if self.image:
-            real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
-        else:
-            real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
-        # print(target_q_value, real_q_value, input_tensor[:, :3], actions_tensor[:, :3], box_tensor)
-        critic_loss = (target_q_value - real_q_value).pow(2).mean()
-
-        self.critic_optim.zero_grad()
-        critic_loss.backward()
-        # sync_grads(self.critic_network)
-        self.critic_optim.step()
-        critic_loss_value = critic_loss.detach().item()
+        # with torch.no_grad():
+        #     # do the normalization
+        #     # concatenate the stuffs
+        #     # if self.image:
+        #     #     actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
+        #     # else:
+        #     #     actions_next = self.actor_target_network(inputs_next_norm_tensor)
+        #     q_next_value = next_q_estimator(input_next_tensor, box_next_tensor)
+        #     q_next_value = q_next_value.detach()
+        #     target_q_value = r_tensor + self.args.gamma * q_next_value * counter
+        #     # print("expected q value {}".format(target_q_value.mean().item()))
+        #     # print(r_tensor, q_next_value, counter)
+        #     target_q_value = target_q_value.detach()
+        #     # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
+        #     # clip the q value
+        #     clip_return = 1 / (1 - self.args.gamma)
+        #     target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
+        # # the q loss
+        # if self.image:
+        #     real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
+        # else:
+        #     real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
+        # # print(target_q_value, real_q_value, input_tensor[:, :3], actions_tensor[:, :3], box_tensor)
+        # critic_loss = (target_q_value - real_q_value).pow(2).mean()
+        #
+        # self.critic_optim.zero_grad()
+        # critic_loss.backward()
+        # # sync_grads(self.critic_network)
+        # self.critic_optim.step()
+        # critic_loss_value = critic_loss.detach().item()
+        critic_loss_value = 0
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
