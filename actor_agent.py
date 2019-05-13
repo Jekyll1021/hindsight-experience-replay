@@ -281,6 +281,12 @@ class actor_agent:
 
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
+
+        # profiling
+        now = time.time()
+        print("getting transitions from storage: {}".format(now-start))
+        start = now
+
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
         input_tensor = torch.tensor(o, dtype=torch.float32)
@@ -288,6 +294,12 @@ class actor_agent:
         input_next_tensor = torch.tensor(o_next, dtype=torch.float32)
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
+
+        # profiling
+        now = time.time()
+        print("getting numpy from transitions: {}".format(now-start))
+        start = now
+
         # start to do the update
         obs_norm = self.o_norm.normalize(transitions['obs'])
         inputs_norm = obs_norm
@@ -297,7 +309,7 @@ class actor_agent:
 
         # profiling
         now = time.time()
-        print("getting numpy data from storage: {}".format(now-start))
+        print("normalization from numpy: {}".format(now-start))
         start = now
 
         # transfer them into the tensor
@@ -310,11 +322,6 @@ class actor_agent:
         if self.image:
             img_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
             img_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
-
-        # profiling
-        now = time.time()
-        print("numpy to tensor: {}".format(now-start))
-        start = now
 
         if self.args.cuda:
             inputs_norm_tensor = inputs_norm_tensor.cuda()
@@ -329,11 +336,6 @@ class actor_agent:
             if self.image:
                 img_tensor = img_tensor.cuda()
                 img_next_tensor = img_next_tensor.cuda()
-
-        # profiling
-        now = time.time()
-        print("move to cuda: {}".format(now-start))
-        start = now
 
         # calculate the target Q value function
         with torch.no_grad():
@@ -354,11 +356,6 @@ class actor_agent:
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
 
-        # profiling
-        now = time.time()
-        print("get target q value: {}".format(now-start))
-        start = now
-
         # the q loss
         if self.image:
             real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
@@ -367,21 +364,11 @@ class actor_agent:
         # print(target_q_value, real_q_value, input_tensor[:, :3], actions_tensor[:, :3], box_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
 
-        # profiling
-        now = time.time()
-        print("compute q: {}".format(now-start))
-        start = now
-
         self.critic_optim.zero_grad()
         critic_loss.backward()
         # sync_grads(self.critic_network)
         self.critic_optim.step()
         critic_loss_value = critic_loss.detach().item()
-
-        # profiling
-        now = time.time()
-        print("update critic: {}".format(now-start))
-        start = now
 
         # the actor loss
         if self.image:
@@ -392,11 +379,6 @@ class actor_agent:
             actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
 
-        # profiling
-        now = time.time()
-        print("compute actor loss: {}".format(now-start))
-        start = now
-
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
@@ -404,18 +386,8 @@ class actor_agent:
         self.actor_optim.step()
         actor_loss_value = actor_loss.detach().item()
 
-        # profiling
-        now = time.time()
-        print("actor update: {}".format(now-start))
-        start = now
-
         if self.args.cuda:
             torch.cuda.empty_cache()
-
-        # profiling
-        now = time.time()
-        print("cleaning cache: {}".format(now-start))
-        start = now
 
         return actor_loss_value, critic_loss_value
 
