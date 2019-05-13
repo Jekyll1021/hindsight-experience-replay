@@ -110,8 +110,6 @@ class actor_agent:
                 else:
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
-                    # profiling
-                    start = time.time()
                     # reset the rollouts
                     if self.image:
                         ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image = [], [], [], [], [], [], []
@@ -126,10 +124,6 @@ class actor_agent:
                     img = observation['image']
                     sg = np.zeros(4)
                     hidden = np.zeros(64)
-                    # profiling
-                    now = time.time()
-                    print("initializing env and variables: {}".format(now-start))
-                    start = now
 
                     if self.image:
                         image_tensor = torch.tensor(observation['image'], dtype=torch.float32).unsqueeze(0)
@@ -178,11 +172,6 @@ class actor_agent:
                     if self.image:
                         mb_image.append(ep_image)
 
-                # profiling
-                now = time.time()
-                print("total execution time: {}".format(now-start))
-                start = now
-
                 # convert them into arrays
                 mb_obs = np.array(mb_obs)
                 mb_ag = np.array(mb_ag)
@@ -196,17 +185,7 @@ class actor_agent:
                 # store the episodes
                 else:
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
-                # profiling
-                now = time.time()
-                print("total store time: {}".format(now-start))
-                start = now
-
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
-
-                # profiling
-                now = time.time()
-                print("total normalizing time: {}".format(now-start))
-                start = now
 
                 # train the network
                 actor_loss, critic_loss = self._update_network()
@@ -214,17 +193,12 @@ class actor_agent:
                 total_critic_loss += critic_loss
                 count += 1
 
-                # profiling
-                now = time.time()
-                print("total training time: {}".format(now-start))
-                start = now
-
                 # soft update
                 # self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
-            success_rate = self._eval_agent()
-            print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
-                datetime.now(), epoch, total_actor_loss/count, total_critic_loss/count, success_rate))
+            # success_rate = self._eval_agent()
+            # print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
+            #     datetime.now(), epoch, total_actor_loss/count, total_critic_loss/count, success_rate))
 
             if self.args.cuda:
                 torch.cuda.empty_cache()
@@ -302,6 +276,9 @@ class actor_agent:
 
     # update the network
     def _update_network(self):
+        # profiling
+        start = time.time()
+
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
         # pre-process the observation and goal
@@ -317,6 +294,12 @@ class actor_agent:
         obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
         inputs_next_norm = obs_next_norm
         # print("avg rewards {}".format(np.mean(transitions['r'])))
+
+        # profiling
+        now = time.time()
+        print("getting numpy data from storage: {}".format(now-start))
+        start = now
+
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
@@ -327,6 +310,12 @@ class actor_agent:
         if self.image:
             img_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
             img_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
+
+        # profiling
+        now = time.time()
+        print("numpy to tensor: {}".format(now-start))
+        start = now
+
         if self.args.cuda:
             inputs_norm_tensor = inputs_norm_tensor.cuda()
             inputs_next_norm_tensor = inputs_next_norm_tensor.cuda()
@@ -340,6 +329,11 @@ class actor_agent:
             if self.image:
                 img_tensor = img_tensor.cuda()
                 img_next_tensor = img_next_tensor.cuda()
+
+        # profiling
+        now = time.time()
+        print("move to cuda: {}".format(now-start))
+        start = now
 
         # calculate the target Q value function
         with torch.no_grad():
@@ -359,6 +353,12 @@ class actor_agent:
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
             target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
+
+        # profiling
+        now = time.time()
+        print("get target q value: {}".format(now-start))
+        start = now
+
         # the q loss
         if self.image:
             real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
@@ -367,11 +367,21 @@ class actor_agent:
         # print(target_q_value, real_q_value, input_tensor[:, :3], actions_tensor[:, :3], box_tensor)
         critic_loss = (target_q_value - real_q_value).pow(2).mean()
 
+        # profiling
+        now = time.time()
+        print("compute q: {}".format(now-start))
+        start = now
+
         self.critic_optim.zero_grad()
         critic_loss.backward()
         # sync_grads(self.critic_network)
         self.critic_optim.step()
         critic_loss_value = critic_loss.detach().item()
+
+        # profiling
+        now = time.time()
+        print("update critic: {}".format(now-start))
+        start = now
 
         # the actor loss
         if self.image:
@@ -382,6 +392,11 @@ class actor_agent:
             actor_loss = -self.critic_network(inputs_norm_tensor, actions_real).mean()
         actor_loss += self.args.action_l2 * (actions_real / self.env_params['action_max']).pow(2).mean()
 
+        # profiling
+        now = time.time()
+        print("compute actor loss: {}".format(now-start))
+        start = now
+
         # start to update the network
         self.actor_optim.zero_grad()
         actor_loss.backward()
@@ -389,8 +404,18 @@ class actor_agent:
         self.actor_optim.step()
         actor_loss_value = actor_loss.detach().item()
 
+        # profiling
+        now = time.time()
+        print("actor update: {}".format(now-start))
+        start = now
+
         if self.args.cuda:
             torch.cuda.empty_cache()
+
+        # profiling
+        now = time.time()
+        print("cleaning cache: {}".format(now-start))
+        start = now
 
         return actor_loss_value, critic_loss_value
 
