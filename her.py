@@ -25,14 +25,14 @@ class her_sampler:
 
         # profiling
         now = time.time()
-        print("select rollouts: {}".format(now-start))
+        print("select rollouts: {}".format((now-start)*1000))
         start = now
 
         transitions = {key: episode_batch[key][episode_idxs, t_samples].copy() for key in episode_batch.keys()}
 
         # profiling
         now = time.time()
-        print("copy transitions: {}".format(now-start))
+        print("copy transitions: {}".format((now-start)*1000))
         start = now
 
         # # her idx
@@ -48,7 +48,7 @@ class her_sampler:
 
         # profiling
         now = time.time()
-        print("compute reward: {}".format(now-start))
+        print("compute reward: {}".format((now-start)*1000))
         start = now
 
         transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:]) for k in transitions.keys()}
@@ -58,6 +58,6 @@ class her_sampler:
 
         # profiling
         now = time.time()
-        print("reshape transitions: {}".format(now-start))
+        print("reshape transitions: {}".format((now-start)*1000))
 
         return transitions
