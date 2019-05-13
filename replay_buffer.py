@@ -79,7 +79,7 @@ class replay_buffer:
 
         # profiling
         now = time.time()
-        print("getting next state: {}".format(now-start))
+        print("getting next state: {}".format((now-start)*1000))
 
         # sample transitions
         if self.ee_reward:
