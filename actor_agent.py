@@ -100,8 +100,9 @@ class actor_agent:
 
         """
         # start to collect samples
+        e = self.env()
         for epoch in range(self.args.n_epochs):
-            actor_loss_lst, critic_loss_lst = [], []
+            total_actor_loss, total_critic_loss, count = 0, 0, 0
             for _ in range(self.args.n_cycles):
                 if self.image:
                     mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
@@ -114,7 +115,7 @@ class actor_agent:
                     else:
                         ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                     # reset the environment
-                    e = self.env()
+
                     observation = e.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
@@ -185,14 +186,16 @@ class actor_agent:
 
                 # train the network
                 actor_loss, critic_loss = self._update_network()
-                actor_loss_lst.append(actor_loss)
-                critic_loss_lst.append(critic_loss)
+                total_actor_loss += actor_loss
+                total_critic_loss += critic_loss
+                count += 1
                 # soft update
                 # self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
-            success_rate = self._eval_agent()
+            # success_rate = self._eval_agent()
+            success_rate = 0
             print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
-                datetime.now(), epoch, np.mean(actor_loss_lst), np.mean(critic_loss_lst), success_rate))
+                datetime.now(), epoch, total_actor_loss/count, total_critic_loss/count, success_rate))
 
             if self.args.cuda:
                 torch.cuda.empty_cache()
