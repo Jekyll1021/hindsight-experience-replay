@@ -276,16 +276,8 @@ class actor_agent:
 
     # update the network
     def _update_network(self):
-        # profiling
-        start = time.time()
-
         # sample the episodes
         transitions = self.buffer.sample(self.args.batch_size)
-
-        # profiling
-        now = time.time()
-        print("getting transitions from storage: {}".format(now-start))
-        start = now
 
         # pre-process the observation and goal
         o, o_next = transitions['obs'], transitions['obs_next']
@@ -295,22 +287,12 @@ class actor_agent:
         transitions['obs'] = self._preproc_og(o)
         transitions['obs_next'] = self._preproc_og(o_next)
 
-        # profiling
-        now = time.time()
-        print("getting numpy from transitions: {}".format(now-start))
-        start = now
-
         # start to do the update
         obs_norm = self.o_norm.normalize(transitions['obs'])
         inputs_norm = obs_norm
         obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
         inputs_next_norm = obs_next_norm
         # print("avg rewards {}".format(np.mean(transitions['r'])))
-
-        # profiling
-        now = time.time()
-        print("normalization from numpy: {}".format(now-start))
-        start = now
 
         # transfer them into the tensor
         inputs_norm_tensor = torch.tensor(inputs_norm, dtype=torch.float32)

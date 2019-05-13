@@ -1,6 +1,8 @@
 import threading
 import numpy as np
 
+import time
+
 """
 the replay buffer here is basically from the openai baselines code
 
@@ -64,12 +66,21 @@ class replay_buffer:
         with self.lock:
             for key in self.buffers.keys():
                 temp_buffers[key] = self.buffers[key][:self.current_size].copy()
+
+        # profiling
+        start = time.time()
+
         temp_buffers['obs_next'] = temp_buffers['obs'][:, 1:, :]
         temp_buffers['ag_next'] = temp_buffers['ag'][:, 1:, :]
         temp_buffers['sg_next'] = temp_buffers['sg'][:, 1:, :]
         temp_buffers['hidden_next'] = temp_buffers['hidden'][:, 1:, :]
         if self.image:
             temp_buffers['image_next'] = temp_buffers['image'][:, 1:, :]
+
+        # profiling
+        now = time.time()
+        print("getting next state: {}".format(now-start))
+
         # sample transitions
         if self.ee_reward:
             transitions = self.sample_func(temp_buffers, batch_size, info="precise")

@@ -1,5 +1,7 @@
 import numpy as np
 
+import time
+
 class her_sampler:
     def __init__(self, replay_strategy, replay_k, reward_func=None):
         self.replay_strategy = replay_strategy
@@ -11,13 +13,28 @@ class her_sampler:
         self.reward_func = reward_func
 
     def sample_her_transitions(self, episode_batch, batch_size_in_transitions, info=None):
+        # profiling
+        start = time.time()
+
         T = episode_batch['actions'].shape[1]
         rollout_batch_size = episode_batch['actions'].shape[0]
         batch_size = batch_size_in_transitions
         # select which rollouts and which timesteps to be used
         episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
         t_samples = np.random.randint(T, size=batch_size)
+
+        # profiling
+        now = time.time()
+        print("select rollouts: {}".format(now-start))
+        start = now
+
         transitions = {key: episode_batch[key][episode_idxs, t_samples].copy() for key in episode_batch.keys()}
+
+        # profiling
+        now = time.time()
+        print("copy transitions: {}".format(now-start))
+        start = now
+
         # # her idx
         # her_indexes = np.where(np.random.uniform(size=batch_size) < self.future_p)
         # future_offset = np.random.uniform(size=batch_size) * (T - t_samples)
@@ -29,9 +46,18 @@ class her_sampler:
         # to get the params to re-compute reward
         transitions['r'] = np.expand_dims(self.reward_func(transitions['ag_next'], transitions['g'], info), 1)
 
+        # profiling
+        now = time.time()
+        print("compute reward: {}".format(now-start))
+        start = now
+
         transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:]) for k in transitions.keys()}
         # if np.sum(transitions['r']) > -np.size(transitions['r']):
         #     inds = np.argwhere(transitions['r'] == 0)
         #     print(transitions['ag_next'][inds[0]])
+
+        # profiling
+        now = time.time()
+        print("reshape transitions: {}".format(now-start))
 
         return transitions
