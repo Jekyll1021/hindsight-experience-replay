@@ -39,43 +39,47 @@ class replay_buffer:
     # store the episode
     def store_episode(self, episode_batch):
         if self.image:
-            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image = episode_batch
+            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image, mb_r = episode_batch
         else:
-            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden = episode_batch
+            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_r = episode_batch
+        mb_obs_next, mb_ag_next, mb_sg_next, mb_hidden_next = mb_obs[:, 1:, :], mb_ag[:, 1:, :], mb_sg[:, 1:, :], mb_hidden[:, 1:, :]
+        mb_obs, mb_ag, mb_sg, mb_hidden = mb_obs[:, :-1, :], mb_ag[:, :-1, :], mb_sg[:, :-1, :], mb_hidden[:, :-1, :]
+        if self.image:
+            mb_image_next = mb_image[:, 1:, :]
+            mb_image = mb_image[:, :-1, :]
         batch_size = mb_obs.shape[0]
         with self.lock:
-            print(mb_obs.shape)
             idxs = self._get_storage_idx(inc=batch_size)
             # store the informations
             self.buffers['obs'][idxs] = mb_obs
+            self.buffers['obs_next'][idxs] = mb_obs_next
             self.buffers['ag'][idxs] = mb_ag
+            self.buffers['ag_next'][idxs] = mb_ag_next
             self.buffers['g'][idxs] = mb_g
             self.buffers['sg'][idxs] = mb_sg
+            self.buffers['sg_next'][idxs] = mb_sg_next
             self.buffers['actions'][idxs] = mb_actions
             self.buffers['hidden'][idxs] = mb_hidden
+            self.buffers['hidden_next'][idxs] = mb_hidden_next
+            self.buffers['r'][idxs] = mb_r
             self.n_transitions_stored += self.T * batch_size
             if self.image:
                 self.buffers['image'][idxs] = mb_image
+                self.buffers['image_next'][idxs] = mb_image_next
 
     # sample the data from the replay buffer
     def sample(self, batch_size):
-        temp_buffers = {}
-        with self.lock:
-            for key in self.buffers.keys():
-                temp_buffers[key] = self.buffers[key][:self.current_size].copy()
-
-        temp_buffers['obs_next'] = temp_buffers['obs'][:, 1:, :]
-        temp_buffers['ag_next'] = temp_buffers['ag'][:, 1:, :]
-        temp_buffers['sg_next'] = temp_buffers['sg'][:, 1:, :]
-        temp_buffers['hidden_next'] = temp_buffers['hidden'][:, 1:, :]
-        if self.image:
-            temp_buffers['image_next'] = temp_buffers['image'][:, 1:, :]
-
-        # sample transitions
-        if self.ee_reward:
-            transitions = self.sample_func(temp_buffers, batch_size, info="precise")
-        else:
-            transitions = self.sample_func(temp_buffers, batch_size)
+        # temp_buffers = {}
+        # with self.lock:
+        #     for key in self.buffers.keys():
+        #         temp_buffers[key] = self.buffers[key][:self.current_size].copy()
+        #
+        # # sample transitions
+        # if self.ee_reward:
+        #     transitions = self.sample_func(temp_buffers, batch_size, info="precise")
+        # else:
+        #     transitions = self.sample_func(temp_buffers, batch_size)
+        transitions = self.sample_func(self.buffers, batch_size)
         return transitions
 
     def _get_storage_idx(self, inc=None):

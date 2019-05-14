@@ -106,15 +106,15 @@ class actor_agent:
             total_actor_loss, total_critic_loss, count = 0, 0, 0
             for _ in range(self.args.n_cycles):
                 if self.image:
-                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image, mb_r = [], [], [], [], [], [], [], []
                 else:
-                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_r = [], [], [], [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
                     # reset the rollouts
                     if self.image:
-                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image = [], [], [], [], [], [], []
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image, ep_r = [], [], [], [], [], [], [], []
                     else:
-                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_r = [], [], [], [], [], [], []
                     # reset the environment
                     e = self.env()
                     observation = e.reset()
@@ -139,7 +139,7 @@ class actor_agent:
                                 pi = self.actor_network(input_tensor).detach()
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
-                        observation_new, _, _, info = e.step(action)
+                        observation_new, r, _, info = e.step(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
                         img_new = observation_new['image']
@@ -150,6 +150,7 @@ class actor_agent:
                         ep_sg.append(sg.copy())
                         ep_actions.append(action.copy())
                         ep_hidden.append(hidden.copy())
+                        ep_r.append([r])
                         if self.image:
                             ep_image.append(img.copy())
                         # re-assign the observation
@@ -169,6 +170,7 @@ class actor_agent:
                     mb_sg.append(ep_sg)
                     mb_actions.append(ep_actions)
                     mb_hidden.append(ep_hidden)
+                    mb_r.append(ep_r)
                     if self.image:
                         mb_image.append(ep_image)
 
@@ -177,14 +179,15 @@ class actor_agent:
                 mb_ag = np.array(mb_ag)
                 mb_g = np.array(mb_g)
                 mb_sg = np.array(mb_sg)
+                mb_r = np.array(mb_r)
                 mb_actions = np.array(mb_actions)
                 mb_hidden = np.array(mb_hidden)
                 if self.image:
                     mb_image = np.array(mb_image)
-                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
+                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image, mb_r])
                 # store the episodes
                 else:
-                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
+                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_r])
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
 
                 # train the network
@@ -196,9 +199,9 @@ class actor_agent:
                 # soft update
                 # self._soft_update_target_network(self.actor_target_network, self.actor_network)
             # start to do the evaluation
-            # success_rate = self._eval_agent()
-            # print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
-            #     datetime.now(), epoch, total_actor_loss/count, total_critic_loss/count, success_rate))
+            success_rate = self._eval_agent()
+            print('[{}] epoch is: {}, actor loss is: {:.5f}, critic loss is: {:.5f}, eval success rate is: {:.3f}'.format(
+                datetime.now(), epoch, total_actor_loss/count, total_critic_loss/count, success_rate))
 
             if self.args.cuda:
                 torch.cuda.empty_cache()
