@@ -8,7 +8,7 @@ the replay buffer here is basically from the openai baselines code
 
 """
 class replay_buffer:
-    def __init__(self, env_params, buffer_size, sample_func, ee_reward=False, image=False):
+    def __init__(self, env_params, buffer_size, sample_func, image=False):
         self.env_params = env_params
         self.T = env_params['max_timesteps']
         self.size = buffer_size // self.T
@@ -16,27 +16,23 @@ class replay_buffer:
         self.current_size = 0
         self.n_transitions_stored = 0
         self.sample_func = sample_func
-        self.ee_reward = ee_reward
         self.image = image
         # create the buffer to store info
-        if ee_reward:
-            self.buffers = {'obs': np.empty([self.size, self.T + 1, self.env_params['obs']]),
-                            'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
-                            'g': np.empty([self.size, self.T, self.env_params['goal']]),
-                            'actions': np.empty([self.size, self.T, self.env_params['goal']]),
-                            'sg': np.empty([self.size, self.T + 1, self.env_params['action']]),
-                            'hidden': np.empty([self.size, self.T + 1, 64])
-                            }
-        else:
-            self.buffers = {'obs': np.empty([self.size, self.T + 1, self.env_params['obs']]),
-                            'ag': np.empty([self.size, self.T + 1, self.env_params['goal']]),
-                            'g': np.empty([self.size, self.T, self.env_params['goal']]),
-                            'actions': np.empty([self.size, self.T, self.env_params['action']]),
-                            'sg': np.empty([self.size, self.T + 1, self.env_params['action']]),
-                            'hidden': np.empty([self.size, self.T + 1, 64])
-                            }
+
+        self.buffers = {'obs': np.empty([self.size, self.T, self.env_params['obs']]),
+                        'obs_next': np.empty([self.size, self.T, self.env_params['obs']]),
+                        'ag': np.empty([self.size, self.T, self.env_params['goal']]),
+                        'ag_next': np.empty([self.size, self.T, self.env_params['goal']]),
+                        'g': np.empty([self.size, self.T, self.env_params['goal']]),
+                        'actions': np.empty([self.size, self.T, self.env_params['action']]),
+                        'sg': np.empty([self.size, self.T, self.env_params['action']]),
+                        'sg_next': np.empty([self.size, self.T, self.env_params['action']]),
+                        'hidden': np.empty([self.size, self.T, 64]),
+                        'hidden_next': np.empty([self.size, self.T, 64])
+                        }
         if image:
-            self.buffers["image"] = np.empty([self.size, self.T + 1, 224, 224, 3 * (int(env_params['two_cam'])+1)])
+            self.buffers["image"] = np.empty([self.size, self.T, 224, 224, 3 * (int(env_params['two_cam'])+1)])
+            self.buffers["image_next"] = np.empty([self.size, self.T, 224, 224, 3 * (int(env_params['two_cam'])+1)])
         # thread lock
         self.lock = threading.Lock()
 
@@ -48,6 +44,7 @@ class replay_buffer:
             mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden = episode_batch
         batch_size = mb_obs.shape[0]
         with self.lock:
+            print(mb_obs.shape)
             idxs = self._get_storage_idx(inc=batch_size)
             # store the informations
             self.buffers['obs'][idxs] = mb_obs
@@ -67,19 +64,12 @@ class replay_buffer:
             for key in self.buffers.keys():
                 temp_buffers[key] = self.buffers[key][:self.current_size].copy()
 
-        # profiling
-        start = time.time()
-
         temp_buffers['obs_next'] = temp_buffers['obs'][:, 1:, :]
         temp_buffers['ag_next'] = temp_buffers['ag'][:, 1:, :]
         temp_buffers['sg_next'] = temp_buffers['sg'][:, 1:, :]
         temp_buffers['hidden_next'] = temp_buffers['hidden'][:, 1:, :]
         if self.image:
             temp_buffers['image_next'] = temp_buffers['image'][:, 1:, :]
-
-        # profiling
-        now = time.time()
-        print("getting next state: {}".format((now-start)*1000))
 
         # sample transitions
         if self.ee_reward:
