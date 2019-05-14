@@ -28,7 +28,8 @@ class replay_buffer:
                         'sg': np.empty([self.size, self.T, self.env_params['action']]),
                         'sg_next': np.empty([self.size, self.T, self.env_params['action']]),
                         'hidden': np.empty([self.size, self.T, 64]),
-                        'hidden_next': np.empty([self.size, self.T, 64])
+                        'hidden_next': np.empty([self.size, self.T, 64]),
+                        'r': np.empty([self.size, self.T, 1])
                         }
         if image:
             self.buffers["image"] = np.empty([self.size, self.T, 224, 224, 3 * (int(env_params['two_cam'])+1)])
