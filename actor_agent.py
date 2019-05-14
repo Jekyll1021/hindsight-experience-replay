@@ -63,11 +63,14 @@ class actor_agent:
 
         # load model if load_path is not None
         if self.args.load_dir != '':
-            load_path = self.args.load_dir + '/model.pt'
-            o_mean, o_std, g_mean, g_std, model = torch.load(load_path)
+            actor_load_path = self.args.load_dir + '/actor.pt'
+            o_mean, o_std, model = torch.load(actor_load_path)
             self.o_norm.mean = o_mean
             self.o_norm.std = o_std
             self.actor_network.load_state_dict(model)
+            critic_load_path = self.args.load_dir + '/critic.pt'
+            o_mean, o_std, model = torch.load(critic_load_path)
+            self.critic_network.load_state_dict(model)
 
         # sync the networks across the cpus
         # sync_networks(self.actor_network)
