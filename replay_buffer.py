@@ -28,8 +28,7 @@ class replay_buffer:
                         'sg': np.empty([self.size, self.T, self.env_params['action']]),
                         'sg_next': np.empty([self.size, self.T, self.env_params['action']]),
                         'hidden': np.empty([self.size, self.T, 64]),
-                        'hidden_next': np.empty([self.size, self.T, 64]),
-                        'r': np.empty([self.size, self.T, 1])
+                        'hidden_next': np.empty([self.size, self.T, 64])
                         }
         if image:
             self.buffers["image"] = np.empty([self.size, self.T, 224, 224, 3 * (int(env_params['two_cam'])+1)])
@@ -40,9 +39,9 @@ class replay_buffer:
     # store the episode
     def store_episode(self, episode_batch):
         if self.image:
-            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image, mb_r = episode_batch
+            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image = episode_batch
         else:
-            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_r = episode_batch
+            mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden = episode_batch
         mb_obs_next, mb_ag_next, mb_sg_next, mb_hidden_next = mb_obs[:, 1:, :], mb_ag[:, 1:, :], mb_sg[:, 1:, :], mb_hidden[:, 1:, :]
         mb_obs, mb_ag, mb_sg, mb_hidden = mb_obs[:, :-1, :], mb_ag[:, :-1, :], mb_sg[:, :-1, :], mb_hidden[:, :-1, :]
         if self.image:
@@ -62,7 +61,6 @@ class replay_buffer:
             self.buffers['actions'][idxs] = mb_actions
             self.buffers['hidden'][idxs] = mb_hidden
             self.buffers['hidden_next'][idxs] = mb_hidden_next
-            self.buffers['r'][idxs] = mb_r
             self.n_transitions_stored += self.T * batch_size
             if self.image:
                 self.buffers['image'][idxs] = mb_image

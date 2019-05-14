@@ -106,15 +106,15 @@ class actor_agent:
             total_actor_loss, total_critic_loss, count = 0, 0, 0
             for _ in range(self.args.n_cycles):
                 if self.image:
-                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image, mb_r = [], [], [], [], [], [], [], []
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_image = [], [], [], [], [], [], []
                 else:
-                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden, mb_r = [], [], [], [], [], [], []
+                    mb_obs, mb_ag, mb_g, mb_sg, mb_actions, mb_hidden = [], [], [], [], [], []
                 for _ in range(self.args.num_rollouts_per_mpi):
                     # reset the rollouts
                     if self.image:
-                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image, ep_r = [], [], [], [], [], [], [], []
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_image = [], [], [], [], [], [], []
                     else:
-                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden, ep_r = [], [], [], [], [], [], []
+                        ep_obs, ep_ag, ep_g, ep_sg, ep_actions, ep_hidden = [], [], [], [], [], []
                     # reset the environment
                     e = self.env()
                     observation = e.reset()
@@ -150,7 +150,6 @@ class actor_agent:
                         ep_sg.append(sg.copy())
                         ep_actions.append(action.copy())
                         ep_hidden.append(hidden.copy())
-                        ep_r.append([r])
                         if self.image:
                             ep_image.append(img.copy())
                         # re-assign the observation
@@ -170,7 +169,6 @@ class actor_agent:
                     mb_sg.append(ep_sg)
                     mb_actions.append(ep_actions)
                     mb_hidden.append(ep_hidden)
-                    mb_r.append(ep_r)
                     if self.image:
                         mb_image.append(ep_image)
 
@@ -179,15 +177,14 @@ class actor_agent:
                 mb_ag = np.array(mb_ag)
                 mb_g = np.array(mb_g)
                 mb_sg = np.array(mb_sg)
-                mb_r = np.array(mb_r)
                 mb_actions = np.array(mb_actions)
                 mb_hidden = np.array(mb_hidden)
                 if self.image:
                     mb_image = np.array(mb_image)
-                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image, mb_r])
+                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
                 # store the episodes
                 else:
-                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_r])
+                    self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
                 self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
 
                 # train the network
