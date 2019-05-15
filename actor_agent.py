@@ -176,6 +176,7 @@ class actor_agent:
                 mb_sg = np.array(mb_sg)
                 mb_actions = np.array(mb_actions)
                 mb_hidden = np.array(mb_hidden)
+                print(mb_ag)
                 if self.image:
                     mb_image = np.array(mb_image)
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
