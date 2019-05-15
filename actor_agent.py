@@ -225,7 +225,7 @@ class actor_agent:
         # if observation['observation'][-1] < 1:
         offset /= 0.05
         offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
-        offset = np.clip(np.array(offset, -self.env_params['action_max'], self.env_params['action_max']))
+        offset = np.clip(offset, -self.env_params['action_max'], self.env_params['action_max'])
         offset *= 0.05
         offset /= np.random.uniform(0.03, 0.07)
         # else:
