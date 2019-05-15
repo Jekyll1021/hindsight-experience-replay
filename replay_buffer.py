@@ -79,6 +79,7 @@ class replay_buffer:
         #     transitions = self.sample_func(temp_buffers, batch_size, info="precise")
         # else:
         #     transitions = self.sample_func(temp_buffers, batch_size)
+        print(self.buffers['ag_next'])
         transitions = self.sample_func(self.buffers, batch_size)
         return transitions
 
