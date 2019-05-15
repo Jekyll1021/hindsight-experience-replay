@@ -152,6 +152,7 @@ class ddpg_agent:
                 if self.image:
                     mb_image = np.array(mb_image)
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
+                    print(mb_ag)
                 # store the episodes
                 else:
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
