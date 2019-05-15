@@ -136,7 +136,6 @@ class actor_agent:
                                 pi = self.actor_network(input_tensor).detach()
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
-                        print(action)
                         observation_new, r, _, info = e.step(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
