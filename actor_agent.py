@@ -233,7 +233,7 @@ class actor_agent:
         # else:
         #     offset /= np.random.uniform(0.03, 0.07)
         #     offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
-        good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1.]), -self.env_params['action_max'], self.env_params['action_max'])
+        good_action = np.clip(np.array([offset[0], offset[1], offset[2], np.random.uniform(-1, 1)]), -self.env_params['action_max'], self.env_params['action_max'])
         # choose if use the random actions
         if np.random.uniform() < self.args.random_eps:
             action = good_action
