@@ -5,7 +5,6 @@ import numpy as np
 from models import actor, actor_image, critic, critic_image
 # from utils import sync_networks, sync_grads
 from replay_buffer import replay_buffer
-from normalizer import normalizer
 from her import her_sampler
 
 import time
@@ -57,9 +56,6 @@ class actor_agent:
         else:
             self.actor_network = actor(env_params, env_params['obs'])
             self.critic_network = critic(env_params, env_params['obs'] + env_params['action'])
-
-        # create the normalizer
-        self.o_norm = normalizer(size=env_params['obs'], default_clip_range=self.args.clip_range)
 
         # load model if load_path is not None
         if self.args.load_dir != '':
@@ -188,7 +184,6 @@ class actor_agent:
                 # store the episodes
                 else:
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])
-                self._update_normalizer([mb_obs, mb_ag, mb_g, mb_actions])
 
                 # train the network
                 actor_loss, critic_loss = self._update_network()
@@ -205,16 +200,15 @@ class actor_agent:
 
             if self.args.cuda:
                 torch.cuda.empty_cache()
-            torch.save([self.o_norm.mean, self.o_norm.std, self.actor_network.state_dict()], \
+            torch.save(self.actor_network.state_dict(), \
                         self.model_path + '/actor.pt')
-            torch.save([self.o_norm.mean, self.o_norm.std, self.critic_network.state_dict()], \
+            torch.save(self.critic_network.state_dict(), \
                         self.model_path + '/critic.pt')
 
     # pre_process the inputs
     def _preproc_inputs(self, obs):
-        obs_norm = self.o_norm.normalize(obs)
         # concatenate the stuffs
-        inputs = obs_norm
+        inputs = obs
         inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
         if self.args.cuda:
             inputs = inputs.cuda()
@@ -244,30 +238,6 @@ class actor_agent:
             action = good_action
         return action
 
-    # update the normalizer
-    def _update_normalizer(self, episode_batch):
-        mb_obs, mb_ag, mb_g, mb_actions = episode_batch
-        mb_obs_next = mb_obs[:, 1:, :]
-        mb_ag_next = mb_ag[:, 1:, :]
-        # get the number of normalization transitions
-        num_transitions = mb_actions.shape[1]
-        # create the new buffer to store them
-        buffer_temp = {'obs': mb_obs,
-                       'ag': mb_ag,
-                       'g': mb_g,
-                       'actions': mb_actions,
-                       'obs_next': mb_obs_next,
-                       'ag_next': mb_ag_next,
-                       }
-        transitions = self.her_module.sample_her_transitions(buffer_temp, num_transitions)
-        obs = transitions['obs']
-        # pre process the obs and g
-        transitions['obs'] = self._preproc_og(obs)
-        # update
-        self.o_norm.update(transitions['obs'])
-        # recompute the stats
-        self.o_norm.recompute_stats()
-
     def _preproc_og(self, o):
         o = np.clip(o, -self.args.clip_obs, self.args.clip_obs)
         return o
@@ -291,10 +261,8 @@ class actor_agent:
         transitions['obs_next'] = self._preproc_og(o_next)
 
         # start to do the update
-        obs_norm = self.o_norm.normalize(transitions['obs'])
-        inputs_norm = obs_norm
-        obs_next_norm = self.o_norm.normalize(transitions['obs_next'])
-        inputs_next_norm = obs_next_norm
+        inputs_norm = transitions['obs']
+        inputs_next_norm = transitions['obs_next']
         # print("avg rewards {}".format(np.mean(transitions['r'])))
 
         # transfer them into the tensor
