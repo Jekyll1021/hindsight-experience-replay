@@ -21,9 +21,7 @@ class her_sampler:
         episode_idxs = np.random.randint(0, rollout_batch_size, batch_size)
         t_samples = np.random.randint(T, size=batch_size)
 
-        print(episode_batch['ag_next'])
         transitions = {key: episode_batch[key][episode_idxs, t_samples].copy() for key in episode_batch.keys()}
-        print(transitions['ag_next'])
         # # her idx
         # her_indexes = np.where(np.random.uniform(size=batch_size) < self.future_p)
         # future_offset = np.random.uniform(size=batch_size) * (T - t_samples)

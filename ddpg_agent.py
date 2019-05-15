@@ -92,6 +92,7 @@ class ddpg_agent:
                     observation = e.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
+                    print(ag)
                     g = observation['desired_goal']
                     img = observation['image']
                     sg = np.zeros(4)
