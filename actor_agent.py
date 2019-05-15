@@ -271,7 +271,6 @@ class actor_agent:
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
-        print(transitions['r'])
         box_tensor = torch.tensor(transitions['ag'], dtype=torch.float32)
         box_next_tensor = torch.tensor(transitions['ag_next'], dtype=torch.float32)
         if self.image:
