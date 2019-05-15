@@ -91,7 +91,7 @@ if __name__ == '__main__':
                         print("use expert on step {}".format(t))
                         pi = torch.tensor(good_action, dtype=torch.float32)
 
-                    print("offset: {}, actions: {}, expert: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist()))
+                    print("offset: {}, actions: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist()))
                     q_value = critic_network(inputs, image_tensor, pi)
                 else:
                     pi = actor_network(inputs)
