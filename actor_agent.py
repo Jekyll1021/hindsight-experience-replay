@@ -227,7 +227,7 @@ class actor_agent:
         offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
         offset = np.clip(offset, -self.env_params['action_max'], self.env_params['action_max'])
         offset *= 0.05
-        offset /= np.random.uniform(0.03, 0.07)
+        offset /= np.random.uniform(0.04, 0.06)
         # else:
         #     offset /= np.random.uniform(0.03, 0.07)
         #     offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
