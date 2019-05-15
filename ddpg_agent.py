@@ -352,8 +352,8 @@ class ddpg_agent:
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
                 time.sleep(.002)
-                if np.any(np.isnan(action)):
-                    action = np.random.uniform(-1, 1, 4)
+                if np.any(np.isnan(actions)):
+                    actions = np.random.uniform(-1, 1, 4)
                 observation, _, _, info = e.step(actions)
                 obs = observation['observation']
                 g = observation['desired_goal']
