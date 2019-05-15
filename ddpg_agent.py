@@ -114,7 +114,6 @@ class ddpg_agent:
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
                         img_new = observation_new['image']
-                        print(ag_new)
                         # append rollouts
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
