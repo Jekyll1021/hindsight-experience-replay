@@ -42,6 +42,7 @@ class replay_buffer:
             mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image = episode_batch
         else:
             mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden = episode_batch
+        print(mb_ag_next, mb_ag)
         mb_obs_next, mb_ag_next, mb_sg_next, mb_hidden_next = mb_obs[:, 1:, :], mb_ag[:, 1:, :], mb_sg[:, 1:, :], mb_hidden[:, 1:, :]
         mb_obs, mb_ag, mb_sg, mb_hidden = mb_obs[:, :-1, :], mb_ag[:, :-1, :], mb_sg[:, :-1, :], mb_hidden[:, :-1, :]
         if self.image:

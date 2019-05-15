@@ -336,7 +336,6 @@ class actor_agent:
             # print("expected q value {}".format(target_q_value.mean().item()))
             # print(r_tensor, q_next_value, counter)
             target_q_value = target_q_value.detach()
-            print(r_tensor, target_q_value)
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
