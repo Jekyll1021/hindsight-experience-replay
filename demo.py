@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
                     offset = (observation["achieved_goal"] - observation["gripper_pose"])
                     offset /= 0.05
-                    good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1.]), -env_params['action_max'], env_params['action_max'])
+                    good_action = np.clip(np.array([[offset[0], offset[1], offset[2], 1.]]), -env_params['action_max'], env_params['action_max'])
 
                     if np.random.uniform() < args.random_eps:
                         print("use expert on step {}".format(t))
