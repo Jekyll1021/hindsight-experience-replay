@@ -8,6 +8,8 @@ from replay_buffer import replay_buffer
 from normalizer import normalizer
 from her import her_sampler
 
+import time
+
 """
 ddpg with HER (MPI-version)
 
@@ -92,7 +94,6 @@ class ddpg_agent:
                     observation = e.reset()
                     obs = observation['observation']
                     ag = observation['achieved_goal']
-                    print(ag)
                     g = observation['desired_goal']
                     img = observation['image']
                     sg = np.zeros(4)
@@ -111,7 +112,7 @@ class ddpg_agent:
                                 pi = self.actor_network(input_tensor)
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
-                        print(action)
+                        time.sleep(.002)
                         observation_new, _, _, info = e.step(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
