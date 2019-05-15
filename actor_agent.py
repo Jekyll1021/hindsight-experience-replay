@@ -235,7 +235,7 @@ class actor_agent:
         # choose if use the random actions
         if np.random.uniform() < self.args.random_eps:
             action = good_action
-        if np.any(np.isnan(action)):
+        if np.any(np.isnan(action)) or np.any(np.absolute(action) > 1):
             action = np.random.uniform(-1, 1, 4)
         return action
 
