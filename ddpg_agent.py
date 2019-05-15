@@ -256,6 +256,7 @@ class ddpg_agent:
         inputs_next_norm_tensor = torch.tensor(inputs_next_norm, dtype=torch.float32)
         actions_tensor = torch.tensor(transitions['actions'], dtype=torch.float32)
         r_tensor = torch.tensor(transitions['r'], dtype=torch.float32)
+        print(np.squeeze(transitions['r']))
         if self.image:
             img_tensor = torch.tensor(transitions['image'], dtype=torch.float32)
             img_next_tensor = torch.tensor(transitions['image_next'], dtype=torch.float32)
