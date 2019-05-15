@@ -286,6 +286,7 @@ class ddpg_agent:
             # concatenate the stuffs
             if self.image:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor, img_next_tensor)
+                actions_next = torch.clamp(actions_next, -self.env_params['action_max'], self.env_params['action_max'])
                 q_next_value = self.critic_target_network(inputs_next_norm_tensor, img_next_tensor, actions_next)
             else:
                 actions_next = self.actor_target_network(inputs_next_norm_tensor)
@@ -297,7 +298,7 @@ class ddpg_agent:
             # print(torch.masked_select(target_q_value, mask), torch.masked_select(r_tensor, mask))
             # clip the q value
             clip_return = 1 / (1 - self.args.gamma)
-            target_q_value = torch.clamp(target_q_value, -clip_return, 0)
+            target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
         # the q loss
         if self.image:
             real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
@@ -315,6 +316,7 @@ class ddpg_agent:
         # the actor loss
         if self.image:
             actions_real = self.actor_network(inputs_norm_tensor, img_tensor)
+            actions_real = torch.clamp(actions_real, -self.env_params['action_max'], self.env_params['action_max'])
             actor_loss = -self.critic_network(inputs_norm_tensor, img_tensor, actions_real).mean()
         else:
             actions_real = self.actor_network(inputs_norm_tensor)
