@@ -33,7 +33,7 @@ if __name__ == '__main__':
     o_mean, o_std, actor_model = torch.load(actor_path, map_location=lambda storage, loc: storage)
     o_mean, o_std, critic_model = torch.load(critic_path, map_location=lambda storage, loc: storage)
     # create the environment
-    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False, two_cam=True)
+    env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False, two_cam=False)
     # get the env param
     observation = env.reset()
     # get the environment params
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     for i in range(args.demo_length):
         path_ind = os.path.join(path, str(i))
         os.makedirs(path_ind)
-        env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False, two_cam=True)
+        env = gym.make(args.env_name, reward_type='sparse', goal_type='random', cam_type='fixed', gripper_init_type='fixed', act_noise=False, obs_noise=False, two_cam=False)
         # get the env param
         observation = env.reset()
         # start to do the demo
