@@ -194,14 +194,22 @@ class ddpg_agent:
         # random actions...
         # random_actions = np.random.uniform(low=-self.env_params['action_max'], high=self.env_params['action_max'], \
         #                                     size=self.env_params['action'])
-        offset = (observation["achieved_goal"] - observation["gripper_pose"]) / 0.05
+        offset = (observation["achieved_goal"] - observation["gripper_pose"])
+        # if observation['observation'][-1] < 1:
+        offset /= 0.05
         offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
-        offset = offset * 0.05 / np.random.uniform(0.03, 0.07)
-
-        good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1.]), -self.env_params['action_max'], self.env_params['action_max'])
+        offset = np.clip(offset, -self.env_params['action_max'], self.env_params['action_max'])
+        offset *= 0.05
+        offset /= np.random.uniform(0.04, 0.06)
+        # else:
+        #     offset /= np.random.uniform(0.03, 0.07)
+        #     offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
+        good_action = np.clip(np.array([offset[0], offset[1], offset[2], np.random.uniform(-1, 1)]), -self.env_params['action_max'], self.env_params['action_max'])
         # choose if use the random actions
         if np.random.uniform() < self.args.random_eps:
             action = good_action
+        if np.any(np.isnan(action)) or np.any(np.absolute(action) > 1):
+            action = np.random.uniform(-1, 1, 4)
         return action
 
     # update the normalizer
