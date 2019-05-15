@@ -114,6 +114,7 @@ class ddpg_agent:
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
                         img_new = observation_new['image']
+                        print(ag_new)
                         # append rollouts
                         ep_obs.append(obs.copy())
                         ep_ag.append(ag.copy())
@@ -152,7 +153,6 @@ class ddpg_agent:
                 if self.image:
                     mb_image = np.array(mb_image)
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden, mb_image])
-                    print(mb_ag)
                 # store the episodes
                 else:
                     self.buffer.store_episode([mb_obs, mb_ag, mb_g, mb_actions, mb_sg, mb_hidden])

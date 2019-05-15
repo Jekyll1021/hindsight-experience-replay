@@ -34,7 +34,6 @@ class her_sampler:
         # to get the params to re-compute reward
 
         transitions['r'] = np.expand_dims(self.reward_func(transitions['ag_next'], transitions['g'], info), 1)
-        print(transitions['ag_next'], transitions['ag_next'].shape)
 
         transitions = {k: transitions[k].reshape(batch_size, *transitions[k].shape[1:]) for k in transitions.keys()}
         # if np.sum(transitions['r']) > -np.size(transitions['r']):
