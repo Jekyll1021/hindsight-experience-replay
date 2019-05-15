@@ -80,7 +80,6 @@ if __name__ == '__main__':
             inputs = process_inputs(obs, o_mean, o_std, args)
             with torch.no_grad():
                 if use_image:
-                    expert = False
                     image_tensor = torch.tensor([img], dtype=torch.float32)
                     pi = actor_network(inputs, image_tensor)
 
@@ -89,24 +88,13 @@ if __name__ == '__main__':
                     good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1.]), -env_params['action_max'], env_params['action_max'])
 
                     if np.random.uniform() < args.random_eps:
-                        expert = True
+                        print("use expert on step {}".format(t))
                         pi = torch.tensor(good_action, dtype=torch.float32)
 
-                    print("offset: {}, actions: {}, expert: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist()), expert)
+                    print("offset: {}, actions: {}, expert: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist()))
                     q_value = critic_network(inputs, image_tensor, pi)
                 else:
                     pi = actor_network(inputs)
-
-                    offset = (observation["achieved_goal"] - observation["gripper_pose"])
-                    offset /= 0.05
-                    good_action = np.clip(np.array([offset[0], offset[1], offset[2], 1.]), -env_params['action_max'], env_params['action_max'])
-
-                    if np.random.uniform() < args.random_eps:
-                        expert = True
-                        pi = torch.tensor(good_action, dtype=torch.float32)
-
-                    print("offset: {}, actions: {}, expert: {}".format(((observation["achieved_goal"] - observation["gripper_pose"])/0.05).tolist(), (pi[:3]).tolist()), expert)
-
                     q_value = critic_network(inputs, pi)
             action = pi.detach().numpy().squeeze()
             value = q_value.detach().item()
