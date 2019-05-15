@@ -61,8 +61,6 @@ class actor_agent:
         if self.args.load_dir != '':
             actor_load_path = self.args.load_dir + '/actor.pt'
             model = torch.load(actor_load_path)
-            self.o_norm.mean = o_mean
-            self.o_norm.std = o_std
             self.actor_network.load_state_dict(model)
             critic_load_path = self.args.load_dir + '/critic.pt'
             model = torch.load(critic_load_path)
@@ -137,7 +135,6 @@ class actor_agent:
                             else:
                                 pi = self.actor_network(input_tensor).detach()
                             action = self._select_actions(pi, observation)
-                            print(action)
                         # feed the actions into the environment
                         observation_new, r, _, info = e.step(action)
                         obs_new = observation_new['observation']
@@ -228,6 +225,7 @@ class actor_agent:
         # if observation['observation'][-1] < 1:
         offset /= 0.05
         offset += self.args.noise_eps * self.env_params['action_max'] * np.random.randn(*offset.shape)
+        offset = np.clip(np.array(offset, -self.env_params['action_max'], self.env_params['action_max']))
         offset *= 0.05
         offset /= np.random.uniform(0.03, 0.07)
         # else:
