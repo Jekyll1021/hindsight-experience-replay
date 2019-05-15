@@ -68,21 +68,14 @@ class actor_image(nn.Module):
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs, 512)
 
-        torch.nn.init.xavier_uniform_(self.resnet.fc, gain=1.0)
-
         if self.two_cam:
             self.image_process = nn.Linear(512*2, 512)
-            torch.nn.init.xavier_uniform_(self.image_process, gain=1.0)
 
         self.input_process = nn.Linear(input_num, 512)
-        torch.nn.init.xavier_uniform_(self.input_process, gain=1.0)
 
         self.fc1 = nn.Linear(512*2, 128)
-        torch.nn.init.xavier_uniform_(self.fc1, gain=1.0)
         self.fc2 = nn.Linear(128, 64)
-        torch.nn.init.xavier_uniform_(self.fc2, gain=1.0)
         self.action_out = nn.Linear(64, output_num)
-        torch.nn.init.xavier_uniform_(self.action_out, gain=1.0)
 
         self.max_action = env_params['action_max']
         self.depth = env_params['depth']
@@ -132,21 +125,15 @@ class critic_image(nn.Module):
         num_ftrs = self.resnet.fc.in_features * 7 * 7
         self.resnet.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.resnet.fc = nn.Linear(num_ftrs, 512)
-        torch.nn.init.xavier_uniform_(self.resnet.fc, gain=1.0)
 
         if self.two_cam:
             self.image_process = nn.Linear(512*2, 512)
-            torch.nn.init.xavier_uniform_(self.image_process, gain=1.0)
 
         self.input_process = nn.Linear(input_num, 512)
-        torch.nn.init.xavier_uniform_(self.input_process, gain=1.0)
 
         self.fc1 = nn.Linear(512*2, 128)
-        torch.nn.init.xavier_uniform_(self.fc1, gain=1.0)
         self.fc2 = nn.Linear(128, 64)
-        torch.nn.init.xavier_uniform_(self.fc2, gain=1.0)
         self.q_out = nn.Linear(64, 1)
-        torch.nn.init.xavier_uniform_(self.q_out, gain=1.0)
         self.depth = env_params['depth']
 
     def forward(self, x, image, actions):
