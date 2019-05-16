@@ -92,9 +92,9 @@ class actor_image(nn.Module):
         # image = F.relu(self.image_fc2(image))
         # image = self.image_fc3(image)
 
-        image = F.relu(self.resnet(image))
+        image = self.resnet(image)
         if self.two_cam:
-            image2 = F.relu(self.resnet(image2))
+            image2 = self.resnet(image2)
             image = torch.cat([image, image2], dim=1)
             image = F.relu(self.image_process(image))
 
@@ -152,9 +152,9 @@ class critic_image(nn.Module):
         # image = F.relu(self.image_fc1(image))
         # image = F.relu(self.image_fc2(image))
         # image = self.image_fc3(image)
-        image = F.relu(self.resnet(image))
+        image = self.resnet(image)
         if self.two_cam:
-            image2 = F.relu(self.resnet(image2))
+            image2 = self.resnet(image2)
             image = torch.cat([image, image2], dim=1)
             image = F.relu(self.image_process(image))
 
