@@ -69,17 +69,17 @@ class replay_buffer:
 
     # sample the data from the replay buffer
     def sample(self, batch_size):
-        # temp_buffers = {}
-        # with self.lock:
-        #     for key in self.buffers.keys():
-        #         temp_buffers[key] = self.buffers[key][:self.current_size].copy()
+        temp_buffers = {}
+        with self.lock:
+            for key in self.buffers.keys():
+                temp_buffers[key] = self.buffers[key][:self.current_size].copy()
         #
         # # sample transitions
         # if self.ee_reward:
         #     transitions = self.sample_func(temp_buffers, batch_size, info="precise")
         # else:
         #     transitions = self.sample_func(temp_buffers, batch_size)
-        transitions = self.sample_func(self.buffers, batch_size)
+        transitions = self.sample_func(temp_buffers, batch_size)
         return transitions
 
     def _get_storage_idx(self, inc=None):
