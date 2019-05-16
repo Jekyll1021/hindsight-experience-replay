@@ -99,16 +99,11 @@ class actor_image(nn.Module):
             image = F.relu(self.image_process(image))
 
         x = F.relu(self.input_process(x))
-        print(x)
 
         x = torch.cat([x, image], dim=1)
-        print(x)
 
         x = F.relu(self.fc1(x))
-        print(x)
         x = F.relu(self.fc2(x))
-        print(x)
-        print(self.action_out(x))
 
         actions = self.max_action * torch.tanh(self.action_out(x))
 
