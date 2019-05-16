@@ -301,6 +301,7 @@ class ddpg_agent:
             target_q_value = torch.clamp(target_q_value, -clip_return, clip_return)
         # the q loss
         if self.image:
+            print(actions_tensor)
             real_q_value = self.critic_network(inputs_norm_tensor, img_tensor, actions_tensor)
         else:
             real_q_value = self.critic_network(inputs_norm_tensor, actions_tensor)
