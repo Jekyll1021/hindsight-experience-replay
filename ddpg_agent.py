@@ -112,8 +112,6 @@ class ddpg_agent:
                                 pi = self.actor_network(input_tensor)
                             action = self._select_actions(pi, observation)
                         # feed the actions into the environment
-                        print(action)
-                        time.sleep(.002)
                         observation_new, _, _, info = e.step(action)
                         obs_new = observation_new['observation']
                         ag_new = observation_new['achieved_goal']
@@ -353,7 +351,6 @@ class ddpg_agent:
                         pi = self.actor_network(input_tensor)
                     # convert the actions
                     actions = pi.detach().cpu().numpy().squeeze()
-                time.sleep(.002)
                 if np.any(np.isnan(actions)):
                     actions = np.random.uniform(-1, 1, 4)
                 observation, _, _, info = e.step(actions)
